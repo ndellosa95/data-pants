@@ -1,0 +1,12 @@
+exclude = [
+    ".git",
+    ".pants.d",
+    ".vscode",
+    "dist"
+]
+line-length = 120
+
+[format]
+quote-style = "double"
+indent-style = "tab"
+docstring-code-format = true
