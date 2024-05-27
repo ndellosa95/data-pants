@@ -1,0 +1,18 @@
+version: 2
+
+models:
+  - name: ent_sfdc_geo
+    description: A user entitlement table based on user's Geo segment in Salesforce. It is used for row level security in Tableau. 
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          combination_of_columns:
+            - user_email
+            - crm_geo
+    columns:
+      - name: user_email
+        tests: 
+            - not_null
+      - name: crm_geo
+        tests: 
+            - not_null
+      - name: entitlement_basis

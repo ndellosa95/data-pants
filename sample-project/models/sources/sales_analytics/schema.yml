@@ -1,0 +1,4 @@
+version: 2
+models:
+  - name: ssa_coverage_fitted_curves_source
+    description: Model stores the quarterly calculated coverage curves by business cut. The coverages are calculated for different metrics and this is heavily leveraged in the X-Ray dashboard pipeline management tool.

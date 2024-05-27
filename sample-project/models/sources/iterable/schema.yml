@@ -1,0 +1,21 @@
+version: 2
+ 
+models:
+ - name: user_history_source
+   description: Base model for user_history
+   columns:
+     - name: updated_at
+       tests:
+         - not_null
+ - name: user_unsubscribed_channel_source
+   description: Base model for user_unsubscribed_channel
+   columns:
+     - name: channel_id
+       tests:
+         - not_null
+ - name: user_unsubscribed_message_type_source
+   description: Base model for user_unsubscribed_message_type
+   columns:
+     - name: message_type_id
+       tests:
+         - not_null

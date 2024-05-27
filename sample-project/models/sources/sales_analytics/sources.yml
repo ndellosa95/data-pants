@@ -1,0 +1,28 @@
+version: 2
+
+sources:
+  - name: sales_analytics
+    database: '{{ env_var("SNOWFLAKE_LOAD_DATABASE") }}'
+    schema: sales_analytics
+    loader: JupyterNotebooks
+    loaded_at_field: _uploaded_at
+
+    quoting:
+      database: true
+      schema: false
+      identifier: false
+
+    tables:
+      - name: xray_curves_qtd_fitted
+      - name: xray_curves_fy_n4q_fitted
+      - name: ae_credits
+      - name: ae_quotas
+      - name: ae_quotas_unpivoted
+      - name: tableau_asm_consolidated_sources
+      - name: input_country_to_region
+      - name: input_state_to_region
+      - name: input_zip_code_to_region
+      - name: input_industry_to_industry_category
+      - name: input_fy25_planning_named
+      - name : fy25_bob_account
+      - name : fy25_bob_upa

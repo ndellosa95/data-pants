@@ -1,0 +1,19 @@
+[tool.poetry]
+name = "analytics"
+version = "1.0.0"
+description = ""
+authors = []
+
+[tool.poetry.dependencies]
+python = "^3.10.3"
+dbt-snowflake = "1.6.4"
+dbt-core= "1.6.4"
+gitlabdata = "0.3.28"
+loguru = "0.6.0"
+pandas = "1.4.2"
+SQLAlchemy = "1.4.46"
+simple-dependency-resolver = "0.1.1"
+requests = "^2.31.0"
+sqlfluff = "2.3.5"
+sqlfluff-templater-dbt = "2.3.5"
+

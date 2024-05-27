@@ -1,0 +1,262 @@
+version: 2
+
+models:
+  - name: wk_sales_clari_net_arr_forecast
+    description: Forecast table combining the different API sub-payloads together
+    columns:
+      - name: user_full_name
+        tests:
+          - not_null
+      - name: user_email
+        tests:
+          - not_null
+      - name: crm_user_id
+        tests:
+          - not_null
+      - name: sales_team_role
+        tests:
+          - not_null
+      - name: parent_role
+      - name: fiscal_quarter
+        tests:
+          - not_null
+      - name: field_name
+        tests:
+          - not_null
+      - name: week_number
+        tests:
+          - not_null
+      - name: week_start_date
+        tests:
+          - not_null
+      - name: week_end_date
+        tests:
+          - not_null
+      - name: field_type
+        tests:
+          - not_null
+      - name: forecast_value
+      - name: is_updated
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          combination_of_columns:
+            - fiscal_quarter
+            - week_start_date 
+            - crm_user_id
+            - field_name
+  - name: wk_prep_sales_funnel_target
+    description: Prep model for SSOT sales funnel targets
+    columns:
+      - name: dim_crm_user_hierarchy_sk
+        tests:
+          - not_null
+  - name: wk_fct_sales_funnel_target
+    description: Prep model for SSOT sales funnel targets
+    columns:
+      - name: kpi_name
+        tests:
+          - not_null
+        tags: ["tdf", "common", "sales_funnel"]
+      - name: sales_funnel_target_id
+        tests:
+          - not_null
+          - unique
+        tags: ["tdf", "common", "sales_funnel"]
+      - name: dim_sales_funnel_kpi_sk
+        tests:
+          - not_null
+        tags: ["tdf", "common", "sales_funnel"]
+  - name: wk_prep_sales_funnel_kpi
+    description: Prep model for SSOT sales funnel targets
+    columns:
+      - name: dim_sales_funnel_kpi_sk
+        tests:
+          - not_null
+          - unique
+      - name: sales_funnel_kpi_name
+        tests:
+          - not_null
+  - name: wk_prep_crm_user_hierarchy
+    description: Prep model for SSOT sales funnel targets
+    columns:
+      - name: dim_crm_user_hierarchy_id
+        description: Unique identifier of a sales hierarchy tier
+        tests:
+          - not_null
+          - unique
+  - name: wk_mart_sales_funnel_target
+    description: Model with Sales targets used for planning the go to market Sales and Marketing motion.
+    columns:
+      - name: sales_funnel_target_id
+        tests:
+            - not_null
+            - unique
+        tags: ["tdf", "mart", "sales_funnel"]
+  - name: wk_dim_crm_user_hierarchy
+    columns:
+      - name: dim_crm_user_hierarchy_id
+        tests:
+          - not_null
+          - unique
+        tags: ["tdf", "common", "sales_funnel"]
+  - name: wk_dim_sales_funnel_kpi
+    columns:
+      - name: dim_sales_funnel_kpi_sk
+        tests:
+          - not_null
+  - name: wk_fct_sales_funnel_target_daily
+    columns:
+      - name: kpi_name
+        tests:
+          - not_null
+        tags: ["tdf", "common", "sales_funnel"]
+      - name: sales_funnel_target_daily_pk
+        tests:
+          - not_null
+          - unique
+        tags: ["tdf", "common", "sales_funnel"]
+      - name: dim_sales_funnel_kpi_sk
+        tests:
+          - not_null
+  - name: wk_fct_sales_funnel_actual
+    description: '{{ doc("fct_sales_funnel_actual") }}'
+    columns:
+      - name: sales_funnel_actual_sk
+        tests:
+          - not_null
+          - unique
+  - name: wk_rpt_crm_opportunity_reduced
+    description: a table with reduced column list from mart_crm_opportunity that is used for testing entitlement tables for Tableau
+    columns:
+      - name: dim_crm_opportunity_id
+        tests:
+            - not_null
+            - unique
+  - name: wk_rpt_crm_account_reduced
+    description: a table with reduced column list from mart_crm_account that is used for testing entitlement tables for Tableau
+    columns:
+      - name: dim_crm_account_id
+        tests:
+            - not_null
+            - unique
+  - name: wk_prep_crm_account_share_active
+    description: an active account share table with reduced column list
+    columns:
+      - name: account_id
+        tests:
+            - not_null
+  - name: wk_prep_crm_opportunity_share_active
+    description: an active opportunity share table with reduced column list
+    columns:
+      - name: opportunity_id
+        tests:
+            - not_null
+  - name: wk_crm_account_entitlement
+    description: an account entitlment table to be used for row level security in Tableau
+    columns:
+      - name: account_id
+  - name: wk_crm_opportunity_entitlement
+    description: an opportunity entitlment table to be used for row level security in Tableau
+    columns:
+      - name: opportunity_id
+  
+  - name: wk_prep_crm_opportunity_fy25
+    description: test version of prep_crm_opportunity for FY25 hierarchy
+    tests:
+    - dbt_utils.unique_combination_of_columns:
+        combination_of_columns:
+          - dim_crm_opportunity_id
+          - snapshot_id
+          - is_live
+    columns: 
+      - name: created_arr 
+        description: >
+          Created ARR associated with the opportunity. The opportunity needs to be eligible, so is_net_arr_pipeline_created needs to be true.
+      - name: closed_won_opps
+        description: > 
+          The closed_won_opps field counts opportunities marked as closed and won (is_closed_won = TRUE) and 
+          eligible for win rate calculations (is_win_rate_calc = TRUE), otherwise set to 0. It quantifies successful deal closures.
+      - name: closed_opps
+        description: >
+          The closed_opps field tallies all opportunities eligible for win rate calculations (is_win_rate_calc = TRUE), 
+          encompassing both won and lost deals, or sets to 0 if not eligible.
+      - name: closed_net_arr
+        description: >
+          The closed_net_arr field calculates the total Net Annual Recurring Revenue (ARR) for deals eligible for win rate calculations 
+          (is_win_rate_calc = TRUE), multiplying calculated_deal_count by net_arr, or sets to 0 if not eligible. It includes lost and won Net ARR.
+      - name: created_arr_in_snapshot_quarter
+        description: >
+          This field computes the running sum of Net ARR for opportunities created within the same fiscal quarter as the snapshot, 
+          indicated by is_net_arr_pipeline_created = 1, or assigns 0 otherwise.
+      - name: closed_won_opps_in_snapshot_quarter
+        description: >
+         This field counts the number of opportunities that were closed as won (is_closed_won = TRUE) and are eligible for win rate
+          calculation (is_win_rate_calc = TRUE) within the same fiscal quarter as the snapshot (snapshot_fiscal_quarter_date = close_fiscal_quarter_date). 
+          If these conditions are not met, the value is set to 0. 
+      - name: closed_opps_in_snapshot_quarter
+        description: >
+          This field tallies the number of opportunities that were closed (regardless of being won or lost) and are eligible for win rate calculation 
+          (is_win_rate_calc = TRUE) within the snapshot's fiscal quarter (snapshot_fiscal_quarter_date = close_fiscal_quarter_date). 
+      - name: closed_net_arr_in_snapshot_quarter
+        description: > 
+          Calculates the total Net ARR from deals eligible for win rate calculation (is_win_rate_calc = TRUE), 
+          using calculated_deal_count multiplied by net_arr. If not eligible, the value is 0. 
+      - name: booked_net_arr_in_snapshot_quarter
+        description: > 
+          This field computes the Net ARR for opportunities within the snapshot quarter (snapshot_fiscal_quarter_date = close_fiscal_quarter_date) 
+          that are either won (is_won = 1) or are renewals marked as lost (is_renewal = 1 AND is_lost = 1). 
+          It reflects the ARR booked through new wins and renewal scenarios within the quarter.
+  - name: wk_fct_crm_opportunity
+    description: '{{ doc("fct_crm_opportunity") }}'
+    columns:
+      - name: dim_crm_opportunity_id
+        description: A dbt generated surrogate key combining the sfdc_record_id and the sales_accepted_date.
+        tests:
+          - unique
+          - not_null
+  - name: wk_fct_crm_opportunity_daily_snapshot
+    columns:
+      - name: crm_opportunity_snapshot_id
+        description: Unique identifier of a crm opportunity in the daily snapshot models
+        tests:
+          - not_null
+          - unique
+  - name: wk_fct_crm_opportunity_7th_day_weekly_snapshot
+    description: >
+      Derived fact table from `fct_crm_opportunity_daily_snapshot`.
+      This new table will not include every daily snapshot. 
+      Instead, it will feature a snapshot once every week — specifically, one snapshot every 7 days 
+      throughout each quarter. This approach is designed to observe and analyze the key trends and
+      activities occurring each week within the quarter.
+    columns:
+      - name: crm_opportunity_snapshot_id
+        description: Unique identifier of a crm opportunity in the daily snapshot models
+        tests:
+          - not_null
+          - unique
+  - name: wk_fct_crm_opportunity_7th_day_weekly_snapshot_aggregate
+    description: >
+      Derived fact table from `fct_crm_opportunity_daily_snapshot`.
+      This new table will not include every daily snapshot. 
+      Instead, it will feature a snapshot once every week — 
+      specifically, one snapshot every 7 days throughout each quarter.
+      This query aggregates key sales metrics and attributes from 
+      the actuals table to the weekly grain and across multiple dimensions
+      like sales source, order type, hierarchy, stage, deal path.
+      This table also computes quarterly totals and adds them as non additive
+      measures to each row, to facilitate pipeline velocity and coverage calculation in Tableau. 
+  - name: wk_rpt_targets_actuals_multi_grain
+    description: >
+      This report table consolidates data:
+      - At the opportunity level for the current quarter  
+      - Aggregate data on a weekly basis for previous quarters 
+      - Targets 
+      It serves as a singular source for creating pipeline visualizations in Tableau, 
+      offering a comprehensive view across different timeframes. This report is a multi
+      grain table, since the data is at 3 different levels of granularity.
+  - name: wk_mart_targets_actuals_7th_day_weekly_snapshot
+    description: >
+      This mart table simplifies tracking sales performance by showing targets and 
+      actuals combined, every seven days within a quarter. 
+      It combines daily targets, daily actuals along with the total quarterly targets and actuals. This 
+      model includes both the numerator and denominator for calculating coverage throughout a quarter

@@ -1,0 +1,2758 @@
+version: 2
+
+models:
+  - name: prep_alliance_type_scd
+    description: '{{ doc("prep_alliance_type_scd") }}'
+    columns:
+      - name: dim_alliance_type_id
+        tests:
+          - not_null
+          - unique
+        tags: ["tdf", "common", "sales_funnel"]
+
+  - name: prep_amendment
+    description: Prep table for Zuora Amendments that increment subscription versions. This prep table will be used in Facts and Dimensions.
+    columns:
+      - name: dim_amendment_id
+        tests:
+          - not_null
+          - unique
+        tags: ["tdf", "common", "arr"]
+
+  - name: prep_app_release
+    description: '{{ doc("prep_app_release") }}'
+    columns:
+      - name: dim_app_release_sk
+        description: '{{ ("dim_app_release_sk") }}'
+        tests:
+          - not_null
+          - unique
+      - name: app_release_id
+        description: '{{ ("app_release_id") }}'
+
+  - name: prep_cluster_agent
+    description: Prep table to select the kubernetes with agents and add aditional information such as the ultimate_namespace_id.
+    columns:
+      - name: cluster_agent_id
+        tests:
+          - not_null
+          - unique
+
+  - name: prep_dim_subscription_snapshot_base
+    description: Base model for the dim_subscription snapshot data
+    columns:
+      - name: dim_subscription_id
+        tests:
+          - not_null
+      - name: dbt_valid_from
+        tests:
+          - not_null
+
+  - name: prep_dr_partner_engagement
+    description: '{{ doc("prep_dr_partner_engagement") }}'
+    columns:
+      - name: dim_dr_partner_engagement_id
+        tests:
+          - not_null
+          - unique
+        tags: ["tdf", "common", "sales_funnel"]
+
+  - name: prep_environment
+    description: Prep table for the source data of the data being exposed in dimensional tables where various sources are combined.
+    columns:
+      - name: dim_environment_id
+        tests:
+          - not_null
+          - unique
+        tags: ["tdf", "common"]
+
+  - name: prep_epic_user_request_collaboration_project
+    description: ' {{ doc("prep_epic_user_request_collaboration_project") }} '
+    columns:
+      - name: epic_id
+        tests:
+          - not_null
+      - name: dim_crm_account_id
+        tests:
+          - not_null
+      - name: CONCAT(epic_id, dim_crm_account_id)
+        tests:
+          - not_null
+          - unique
+
+  - name: prep_epic_user_request
+    description: ' {{ doc("prep_epic_user_request") }} '
+    columns:
+      - name: epic_id
+        tests:
+          - not_null
+      - name: dim_crm_account_id
+        tests:
+          - not_null
+      - name: CONCAT(epic_id, dim_crm_account_id, dim_crm_opportunity_id, dim_ticket_id)
+        tests:
+          - not_null
+          - unique
+
+  - name: prep_issue_user_request_collaboration_project
+    description: ' {{ doc("prep_issue_user_request_collaboration_project") }} '
+    columns:
+      - name: dim_issue_sk
+        tests:
+          - not_null
+      - name: dim_crm_account_id
+        tests:
+          - not_null
+      - name: CONCAT(issue_id, dim_crm_account_id, dim_original_issue_project_id, original_issue_internal_id)
+        tests:
+          - not_null
+          - unique
+
+  - name: prep_issue_user_request
+    description: ' {{ doc("prep_issue_user_request") }} '
+    columns:
+      - name: dim_issue_sk
+        tests:
+          - not_null
+      - name: dim_crm_account_id
+        tests:
+          - not_null
+      - name: CONCAT(issue_id, dim_crm_account_id, dim_crm_opportunity_id, dim_ticket_id)
+        tests:
+          - not_null
+          - unique
+
+  - name: prep_campaign
+    description: '{{ doc("prep_campaign") }}'
+    columns:
+      - name: dim_campaign_id
+        description: Unique identifier of a marketing campaign
+        tests:
+          - not_null
+          - unique
+      - name: campaign_partner_crm_id
+        description: The partner associated with this campaign through Vartopia.
+      - name: mdf_request_id
+        description: The ID MDF Request that funded the campaign for MDF Campaigns.
+      - name: resale_partner_name
+        description: The name of the resale partner on the opp. Often this will have a value for partner opps when the partner does not.
+
+  - name: prep_crm_person
+    description: '{{ doc("prep_crm_person") }}'
+    columns:
+      - name: dim_crm_person_id
+        description: Unique identifier of a Salesforce contact or lead
+        tests:
+          - not_null
+          - unique
+      - name: is_high_priority
+        description: A person-level flag to indicate if the person is a high prioirty person, according to Salesforce field logic. 
+      - name: person_first_country
+        description: >
+          Selects the first country contact enhancement services using available data. Following the order:  Account Demographics UPA Country, Zoominfo Company Country, Persons Country.
+      - name: lead_score_classification
+        description: The Salesforce grade of the lead score for a lead/contact. 
+      - name: is_defaulted_trial
+        description: Boolean value of whether or not a lead/contact was defaulted to a trial.
+
+  - name: prep_crm_user
+    description: '{{ doc("prep_crm_user") }}'
+    columns:
+      - name: dim_crm_user_id
+        description: Unique identifier of a Salesforce user
+        tests:
+          - not_null
+          - unique
+
+  - name: prep_crm_touchpoint
+    description: PREP layer for the SFDC Bizible person touchpoint object
+    columns:
+      - name: touchpoint_id
+        description: Unique identifier of a Salesforce Bizible Person touchpoint
+        tests:
+          - not_null
+          - unique
+
+  - name: prep_crm_attribution_touchpoint
+    description: PREP layer for the SFDC Bizible attribution touchpoint object
+    columns:
+      - name: touchpoint_id
+        description: Unique identifier of a Salesforce Bizible Attribution touchpoint
+        tests:
+          - not_null
+          - unique
+
+  - name: prep_crm_user_hierarchy
+    description: '{{ doc("prep_crm_user_hierarchy") }}'
+    columns:
+      - name: dim_crm_user_hierarchy_id
+        description: Unique identifier of a sales hierarchy tier
+        tests:
+          - not_null
+          - unique
+
+  - name: prep_app_release_major_minor
+    description: '{{ doc("prep_app_release_major_minor") }}'
+    columns:
+      - name: dim_app_release_major_minor_sk
+        description: '{{ doc("dim_app_release_major_minor_sk") }}'
+        tests:
+          - not_null
+          - unique
+      - name: app_release_major_minor_id
+        description: '{{ doc("app_release_major_minor_id") }}'
+
+  - name: prep_industry
+    description: '{{ doc("prep_industry") }}'
+    columns:
+      - name: dim_industry_id
+        description: Unique identifier of an industry
+        tests:
+          - not_null
+          - unique
+
+  - name: prep_location_country
+    description: '{{ doc("prep_location_country") }}'
+    columns:
+      - name: dim_location_country_id
+        description: Unique identifier of a country
+        tests:
+          - not_null
+          - unique
+
+  - name: prep_location_region
+    description: '{{ doc("prep_location_region") }}'
+    columns:
+      - name: dim_location_region_id
+        description: Unique identifier of a geographical region
+        tests:
+          - not_null
+          - unique
+
+  - name: prep_bizible_marketing_channel_path
+    description: '{{ doc("prep_bizible_marketing_channel_path") }}'
+    columns:
+      - name: dim_bizible_marketing_channel_path_id
+        description: Unique identifier of a Bizible marketing channel path
+        tests:
+          - not_null
+          - unique
+
+  - name: prep_namespace_hist
+    description: '{{ doc("dim_namespace_hist") }}'
+    columns:
+      - name: namespace_snapshot_id
+        tests:
+          - not_null
+          - unique
+      - name: dim_namespace_id
+        tests:
+          - not_null
+      - name: valid_from
+        tests:
+          - not_null
+      - name: valid_to
+
+  - name: prep_namespace_plan_hist
+    description: '{{ doc("dim_namespace_plan_hist") }}'
+    columns:
+      - name: dim_namespace_id
+        tests:
+          - not_null
+      - name: dim_namespace_plan_subscription_hist_id
+        tests:
+          - unique
+          - not_null
+
+  - name: prep_namespace
+    description: '{{ doc("dim_namespace") }}'
+    columns:
+      - name: dim_namespace_id
+        tests:
+          - not_null
+        tags: ["tdf", "common", "gainsight"]
+      - name: ultimate_parent_namespace_id
+        tests:
+          - not_null
+        tags: ["tdf", "common", "gainsight"]
+      - name: namespace_is_ultimate_parent
+        description: '{{ doc("namespace_is_ultimate_parent") }}'
+      - name: namespace_is_internal
+      - name: namespace_name
+      - name: namespace_path
+      - name: owner_id
+      - name: namespace_type
+        description: '{{ doc("namespace_type") }}'
+        tests:
+          - not_null
+        tags: ["tdf", "common", "gainsight"]
+      - name: has_avatar
+      - name: namespace_created_at
+      - name: namespace_updated_at
+      - name: is_membership_locked
+      - name: has_request_access_enabled
+      - name: has_share_with_group_locked
+      - name: visibility_level
+        description: '{{ doc("visibility_level") }}'
+      - name: dap_sync_status
+      - name: ldap_sync_error
+      - name: ldap_sync_last_update_at
+      - name: ldap_sync_last_successful_update_at
+      - name: ldap_sync_last_sync_at
+      - name: lfs_enabled
+      - name: parent_id
+      - name: shared_runners_minutes_limit
+      - name: extra_shared_runners_minutes_limit
+      - name: repository_size_limit
+      - name: does_require_two_factor_authentication
+      - name: two_factor_grace_period
+      - name: project_creation_level
+      - name: push_rule_id
+      - name: creator_id
+      - name: namespace_creator_is_blocked
+      - name: gitlab_plan_id
+        description: The `plan_id` associated with the namespace's _GitLab_ subscription. This can be inherited from the namespace's ultimate parent. `NULL` if the namespace has been deleted.
+      - name: gitlab_plan_title
+        description: The `plan_title` associated with the namespace's _GitLab_ subscription. This can be inherited from the namespace's ultimate parent. `NULL` if the namespace has been deleted.
+      - name: gitlab_plan_is_paid
+        description: '{{ doc("gitlab_plan_is_paid") }}'
+      - name: dim_product_tier_id
+      - name: gitlab_plan_seats
+      - name: gitlab_plan_seats_in_use
+      - name: gitlab_plan_max_seats_used
+      - name: namespace_member_count
+        description: Do not use this count, it is incorrect. Use [gitlab_dotcom_memberships](https://dbt.gitlabdata.com/#!/model/model.gitlab_snowflake.gitlab_dotcom_memberships) for member counts.
+      - name: current_project_count
+        description: The number of projects that are presently associated with the namespace.
+      - name: has_code_suggestions_enabled
+        description: '{{ doc("namespace_has_code_suggestions_enabled") }}'
+      - name: is_currently_valid
+        description: Flags whether the namespace is currently valid. `FALSE` if the namespace has been deleted.
+        tests:
+          - not_null
+        tags: ["tdf", "common", "gainsight"]
+      - name: namespace_name_unmasked
+        description: '{{ doc("namespace_name_unmasked") }}'
+        meta:
+          masking_policy: analyst_marketing_sensitive
+
+  - name: prep_order_hist
+    description: '{{ doc("dim_order_hist") }}'
+    columns:
+      - name: dim_order_id
+        tests:
+          - not_null
+      - name: customer_id
+        tests:
+          - not_null
+      - name: product_rate_plan_id
+      - name: dim_subscription_id
+      - name: dim_namespace_id
+      - name: dim_billing_account_id
+      - name: order_created_at
+        tests:
+          - not_null
+      - name: valid_from
+        tests:
+          - not_null
+      - name: valid_to
+
+  - name: prep_sales_qualified_source
+    description: '{{ doc("prep_sales_qualified_source") }}'
+    columns:
+      - name: dim_sales_qualified_source_id
+        description: Unique identifier of a sales qualified opportunity source
+        tests:
+          - not_null
+          - unique
+
+  - name: prep_order_type
+    description: '{{ doc("prep_order_type") }}'
+    columns:
+      - name: dim_order_type_id
+        description: Unique identifier of an order type
+        tests:
+          - not_null
+          - unique
+
+  - name: prep_sales_funnel_kpi
+    description: '{{ doc("prep_sales_funnel_kpi") }}'
+    columns:
+      - name: dim_sales_funnel_kpi_sk
+        description: '{{ doc("dim_sales_funnel_kpi_sk") }}'
+        tests:
+          - not_null
+          - unique
+      - name: sales_funnel_kpi_name
+        description: '{{ doc("sales_funnel_kpi_name") }}'
+        tests:
+          - not_null
+
+  - name: prep_deal_path
+    description: '{{ doc("prep_deal_path") }}'
+    columns:
+      - name: dim_deal_path_id
+        description: Unique identifier of a deal_path
+        tests:
+          - not_null
+          - unique
+
+  - name: prep_gitlab_dotcom_application_settings_monthly
+    description: '{{ doc("prep_gitlab_dotcom_application_settings_monthly") }}'
+    columns:
+      - name: primary_key
+        tests:
+          - not_null
+          - unique
+      - name: snapshot_month
+        tests:
+          - not_null
+      - name: application_settings_id
+        tests:
+          - not_null
+      - name: shared_runners_minutes
+        description: Default CI minutes limit for new all namespaces when no paid plan has been purchased.
+        tests:
+          - not_null
+      - name: repository_size_limit
+        description: Default storage limit (per project reposity) for new all namespaces when no paid plan has been purchased.
+        tests:
+          - not_null
+
+  - name: prep_gitlab_dotcom_plan
+    description: '{{ doc("prep_gitlab_dotcom_plan") }}'
+    columns:
+      - name: dim_plan_id
+        tests:
+          - not_null
+          - unique
+        description: '{{ doc("dim_plan_id") }}'
+      - name: plan_id_modified
+        description: '{{ doc("plan_id_modified") }}'
+      - name: plan_name_modified
+        description: '{{ doc("plan_name_modified") }}'
+
+  - name: prep_product_detail
+    columns:
+      - name: dim_product_detail_id
+        description: The unique ID of each row in dim_product_detail, based on product rate plan charge ID.
+      - name: dim_product_tier_id
+        description: The unique ID of a product tier determined in dim_product_tier.
+      - name: product_id
+        description: The ID of the product that contains the product rate plan.
+      - name: product_name
+        description: The name of the product
+      - name: is_reporter_license
+        description: "Reporter licenses are in the Products with 'Additional Permission Types' in the name."
+      - name: billing_list_price
+        description: The price of the tier if the charge is a flat fee, or the price of each unit in the tier if the charge model is tiered pricing.
+      - name: product_rate_plan_charge_id
+        description: The unique ID of a product rate plan charge
+      - name: product_rate_plan_name
+        description: The name of the product rate plan. The name doesn't have to be unique in a Product Catalog, but the name has to be unique within a product.
+      - name: product_rate_plan_charge_name
+        description: The name of the product rate plan charge
+      - name: product_sku
+        description: The unique SKU for the product
+      - name: product_tier_historical
+        description: Product pricing tiers prior to [tier renaming](https://gitlab-com.gitlab.io/packaging-and-pricing/pricing-handbook/handbook/renaming_tiers/) (early 2021).
+      - name: product_tier_historical_short
+        description: Pulls the product tier from `product_tier_historical` with the delivery type removed
+      - name: product_tier_name
+        description: Product [pricing tiers](https://about.gitlab.com/handbook/marketing/strategic-marketing/tiers/) for both SaaS and Self-Managed customers. Includes the mapping from SaaS - Silver to SaaS - Premium, and from SaaS - Gold to SaaS - Ultimate.
+      - name: product_tier_name_short
+        description: Pulls the product tier from `product_tier_name` with the delivery type removed
+      - name: product_deployment_type
+        description: How a product is deployed to the customer; Self-Managed, GitLab.com or Dedicated (or Other).
+      - name: effective_start_date
+        description: The date when the product becomes available and can be subscribed to
+      - name: effective_end_date
+        description: The date when the product expires and can't be subscribed to anymore
+      - name: is_oss_or_edu_rate_plan
+        description: Flag for rate plans containing OSS or EDU
+
+  - name: prep_ptp_scores_by_user
+    description: '{{ doc("prep_ptp_scores_by_user") }}'
+    columns:
+      - name: dim_marketing_contact_id
+        description: Unique identifier for the marketing contact.
+        tests:
+          - not_null
+          
+  - name: prep_ptp_scores_by_user_historical
+    description: '{{ doc("prep_ptp_scores_by_user_historical") }}'
+    columns:
+      - name: dim_marketing_contact_id
+        description: Unique identifier for the marketing contact.
+        tests:
+          - not_null
+      - name: valid_from
+        description: First date score_group and ptp_source combo is valid from for the marketing contact
+        tests:
+          - not_null
+      - name: valid_to
+        description: Last date score_group and ptp_source combo is valid from for the marketin contact
+
+  - name: prep_ptpt_scores_by_user
+    description: '{{ doc("prep_ptpt_scores_by_user") }}'
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          combination_of_columns:
+            - dim_marketing_contact_id
+            - score_date
+    columns:
+      - name: dim_marketing_contact_id
+        description: Unique identifier for the marketing contact.
+        tests:
+          - not_null
+      - name: score_date
+        description: Date of the score.
+        tests:
+          - not_null
+
+  - name: prep_ptpf_scores_by_user
+    description: '{{ doc("prep_ptpf_scores_by_user") }}'
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          combination_of_columns:
+            - dim_marketing_contact_id
+            - score_date
+    columns:
+      - name: dim_marketing_contact_id
+        description: Unique identifier for the marketing contact.
+        tests:
+          - not_null
+      - name: score_date
+        description: Date of the score.
+        tests:
+          - not_null
+
+  - name: prep_ptpl_scores_by_user
+    description: '{{ doc("prep_ptpl_scores_by_user") }}'
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          combination_of_columns:
+            - dim_marketing_contact_id
+            - score_date
+    columns:
+      - name: dim_marketing_contact_id
+        description: Unique identifier for the marketing contact.
+        tests:
+          - not_null
+      - name: score_date
+        description: Date of the score.
+        tests:
+          - not_null
+
+  - name: prep_sales_segment
+    description: '{{ doc("prep_sales_segment") }}'
+    columns:
+      - name: dim_sales_segment_id
+        description: Unique identifier of a sales segment
+        tests:
+          - not_null
+          - unique
+
+  - name: prep_sales_territory
+    description: '{{ doc("prep_sales_territory") }}'
+    columns:
+      - name: dim_sales_territory_id
+        description: Unique identifier of a geo area
+        tests:
+          - not_null
+          - unique
+
+  - name: prep_subscription
+    description: '{{ doc("prep_subscription") }}'
+    columns:
+      - name: dim_subscription_id
+        description: Unique identifier of a version of a subscription
+        tests:
+          - not_null
+          - unique
+        tags: ["tdf", "common", "gainsight"]
+      - name: dim_crm_account_id
+        description: account id from SFDC identifing the customer
+      - name: dim_billing_account_id
+        description: The id of the Zuora account the subscription is associated with
+      - name: dim_billing_account_id_invoice_owner
+      - name: dim_crm_opportunity_id
+      - name: dim_subscription_id_original
+      - name: dim_subscription_id_previous
+      - name: amendment_id
+      - name: subscription_name_slugify
+        description: The unique identifier of the subscription
+      - name: subscription_status
+        description: The status of the subscription
+        tests:
+          - not_null
+          - accepted_values:
+              values: ['Active', 'Cancelled', 'Draft', 'Expired']
+        tags: ["tdf", "common", "gainsight"]
+      - name: subscription_version
+        description: The version number of the subscription
+      - name: is_auto_renew
+        description: Boolean field, if true, this subscription automatically renews at the end of the subscription term
+      - name: zuora_renewal_subscription_name
+        description: name of the linked subscription that renews the prior subscription in a lineage
+      - name: zuora_renewal_subscription_name_slugify
+        description: name of the linked subscription that renews the prior subscription in a lineage
+      - name: renewal_term
+        description: The length of the period for the subscription renewal term
+      - name: renewal_term_period_type
+        description: The period type for the subscription renewal term. This field is used with the renewal term field to specify the subscription renewal term.
+      - name: subscription_start_date
+        description: The date when the subscription term starts. This date is the same as the start date of the original term, which isn't necessarily the start date of the current or new term.
+      - name: subscription_end_date
+        description: The date when the subscription term ends, where the subscription ends at midnight the day before. For example, if the SubscriptionEndDate is 12/31/2016, the subscriptions ends at midnight (00:00:00 hours) on 12/30/2016. This date is the same as the term end date or the cancelation date, as appropriate.
+      - name: subscription_start_month
+        description: The month when the subscription term starts. This month is the same as the start month of the original term, which isn't necessarily the start month of the current or new term.
+      - name: subscription_end_month
+        description: The month when the subscription term ends. This month is the same as the term end month or the cancelation month, as appropriate.
+      - name: subscription_sales_type
+        description: Identifies whether a subscription is Sales-Assisted or Self-Service / Web Direct.
+        tests:
+          - not_null
+          - accepted_values:
+                  values: ['Sales-Assisted', 'Self-Service']
+        tags: ["tdf"]
+      - name: namespace_name
+        description: The namespace related to the subscription.
+      - name: namespace_id
+        description: The id of the namespace related to the subscription.
+      - name: is_myb
+        description: MYB = Multi-Year Booking. This boolean flag identifies if a subscription is booked for more than one year. This can either be by having a term greater than 12 months or having a linked subscription.
+      - name: is_myb_with_multi_subs
+        description: MYB = Multi-Year Booking. This boolean flag identifies if a subscription is booked for more than one year by using multiple linked subscriptions only. A subscription with a term greater than 12 but does not have linked subscriptions has a value of FALSE.
+      - name: dim_crm_opportunity_id_current_open_renewal
+        description: '{{ doc("dim_crm_opportunity_id_current_open_renewal") }}'
+      - name: dim_crm_opportunity_id_closed_lost_renewal
+        description: '{{ doc("dim_crm_opportunity_id_closed_lost_renewal") }}'
+
+  - name: prep_subscription_lineage
+    description:  '{{doc("prep_subscription_lineage")}}'
+    columns:
+        - name: subscription_name_slugify
+          tests:
+            - not_null
+            - unique
+        - name: lineage
+          description: "All the subscriptions subsquent to the primary subscription, separated by commas."
+
+  - name: prep_subscription_lineage_parentage_finish
+    description: '{{ doc("prep_subscription_lineage_parentage_finish") }}'
+    columns:
+        - name: ultimate_parent_sub
+          tests:
+            - not_null
+        - name: child_sub
+          tests:
+            - not_null
+            - unique
+        - name: cohort_month
+          tests:
+            - not_null
+        - name: cohort_quarter
+          tests:
+            - not_null
+        - name: cohort_year
+          tests:
+            - not_null
+  - name: prep_subscription_lineage_parentage_start
+    description: '{{doc("prep_subscription_lineage_parentage_start")}}'
+
+  - name: prep_subscription_lineage_intermediate
+    description: '{{ doc("prep_subscription_lineage_intermediate") }}'
+    columns:
+      - name: sub_row
+        tests:
+          - not_null
+          - accepted_values:
+              values: [ '1' ]
+      - name: subscription_id
+        tests:
+          - not_null
+          - unique
+      - name: subscription_status
+        tests:
+          - not_null
+          - accepted_values:
+              values: [ 'Active','Cancelled' ]
+
+  - name: prep_product_tier
+    description: '{{ doc("prep_product_tier") }}'
+    columns:
+      - name: dim_product_tier_id
+        description: "The unique identifier of Pricing tiers for Zuora Products"
+        tests:
+          - not_null
+          - unique
+        tags: ["tdf", "common", "gainsight"]
+      - name: product_tier_historical
+        description: Product pricing tiers prior to [tier renaming](https://gitlab-com.gitlab.io/packaging-and-pricing/pricing-handbook/handbook/renaming_tiers/) (early 2021).
+        tests:
+          - not_null
+          - unique
+        tags: ["tdf", "common", "gainsight"]
+      - name: product_tier_historical_short
+        description: Pulls the product tier from `product_tier_historical` with the delivery type removed
+      - name: product_tier_name
+        description: Product [pricing tiers](https://about.gitlab.com/handbook/marketing/strategic-marketing/tiers/) for both SaaS and Self-Managed customers. Includes the mapping from SaaS - Silver to SaaS - Premium, and from SaaS - Gold to SaaS - Ultimate.
+        tests:
+          - not_null
+        tags: ["tdf", "common", "gainsight"]
+      - name: product_tier_name_short
+        description: Pulls the product tier from `product_tier_name` with the delivery type removed
+      - name: product_delivery_type
+        description: "How product is delivered to customer; SaaS or Self-Managed (or Other)"
+      - name: product_deployment_type
+        description: How a product is deployed to the customer; Self-Managed, GitLab.com or Dedicated (or Other).
+      - name: product_ranking
+        description: "Numeric product pricing tier, independent of delivery type"
+
+  - name: prep_license
+    description: '{{ doc("prep_license") }}'
+    columns:
+      - name: dim_license_id
+        description: The unique ID of a generated license.
+        tests:
+          - not_null
+          - unique
+        tags: ["tdf", "common", "gainsight"]
+      - name: license_md5
+        description: The md5 hash of the license file. Use this field to join to fct_usage_ping_payloads.
+        tests:
+          - not_null
+          - unique
+        tags: ["tdf", "common", "gainsight"]
+      - name: license_sha256
+        description: The license_sha256 is a secure hash created off the license file to be compliant with FIPS. This field can be used to join to the Service ping data.
+        tests: 
+          - not_null
+          - unique
+        tags: ["tdf", "common", "gainsight"]
+      - name: dim_subscription_id
+        description: The unique identifier of a version of a subscription.
+      - name: subscription_name
+        description: The unique identifier of a subscription.
+      - name: dim_subscription_id_original
+      - name: dim_subscription_id_previous
+      - name: license_user_count
+        description: The user count of the license.
+      - name: license_plan
+        description: The plan code for the product tier of the license.
+      - name: dim_product_tier_id
+        description: The unique ID of a product tier deterimined in dim_product_tier.
+      - name: is_trial
+        description: Boolean flag noting if the license was generated as part of a trial.
+      - name: is_internal
+        description: Derived boolean flag noting if the email recipient and company associated with the license is part of GitLab.
+      - name: company
+        description: The company the license was generated for.
+      - name: license_start_date
+        description: The start date of the license.
+      - name: license_expire_date
+        description: The expiration date of the license.
+      - name: created_at
+        description: The timestamp of when the license was generated.
+      - name: updated_at
+        description: The timestamp of when the license was updated.
+
+  - name: prep_usage_self_managed_seat_link
+    description: '{{ doc("prep_usage_self_managed_seat_link") }}'
+    columns:
+      - name: customers_db_order_id
+        tests:
+          - not_null
+        tags: ["tdf", "common", "gainsight"]
+      - name: order_subscription_id
+        description: Zuora subscription ID listed on the order in the Customers source database.
+      - name: dim_subscription_id
+        tests:
+          - not_null
+        tags: ["tdf", "common", "gainsight"]
+      - name: dim_subscription_id_original
+        tests:
+          - not_null
+        tags: ["tdf", "common", "gainsight"]
+      - name: dim_subscription_id_previous
+        tests:
+          - not_null
+        tags: ["tdf", "common", "gainsight"]
+      - name: dim_crm_account_id
+        tests:
+          - not_null
+        tags: ["tdf", "common", "gainsight"]
+      - name: dim_billing_account_id
+        tests:
+          - not_null
+        tags: ["tdf", "common", "gainsight"]
+      - name: dim_product_tier_id
+        tests:
+          - not_null
+        tags: ["tdf", "common", "gainsight"]
+      - name: subscription_name
+        description: The unique identifier of a subscription.
+      - name: active_user_count
+        description: Count of active users currently on the customer's subcription. A count of 0 indicates that Seat Link has been turned off by the customer.
+      - name: license_user_count
+        description: Count of licensed users purchased with the customer's subcription.
+        tests:
+          - not_null
+        tags: ["tdf", "common", "gainsight"]
+      - name: max_historical_user_count
+        description: Maximum active user count ever reported over the lifetime of the customer's subcription.
+      - name: report_date
+        description: Day on which Seat Link usage data is reported. Should always be last day of month for historical months.
+        tests:
+          - not_null
+        tags: ["tdf", "common", "gainsight"]
+      - name: is_last_seat_link_report_per_subscription
+        description: Flags if the row contains the most recent seat link record received for the subscription.
+      - name: is_last_seat_link_report_per_order
+        description: Flags if the row contains the most recent seat link record received for the order.
+      - name: is_subscription_in_zuora
+        description: Flags rows where the `zuora_subscription_id` from `customers_db_orders_source` is not found in `dim_subscription`.
+      - name: is_rate_plan_in_zuora
+        description: Flags rows where the `product_rate_plan_id` from `customers_db_orders_source` is not found in `dim_product_tier`.
+      - name: is_active_user_count_available
+        description: Flags rows where `active_user_count` is NULL in source.
+
+  - name: prep_latest_seat_link_installation
+    description: '{{ doc("prep_latest_seat_link_installation") }}'
+    columns:
+      - name: latest_seat_link_installation_sk
+        tests:
+          - not_null
+          - unique:
+              config:
+                where: "report_date >= DATEADD('day', -3, CURRENT_DATE())"
+
+  - name: prep_gainsight_source_model_counts
+    description: '{{ doc("prep_gainsight_source_model_counts") }}'
+    columns:
+      - name: model_name
+        description: Name of the Model
+      - name: row_count
+        description: Number of records in the table
+
+  - name: prep_saas_usage_ping_free_user_metrics
+    description: '{{ doc("prep_saas_usage_ping_free_user_metrics") }}'
+    columns:
+      - name: dim_namespace_id
+        tests:
+          - not_null
+        tags: ["tdf", "common", "gainsight"]
+      - name: dim_subscription_id
+      - name: dim_crm_account_id
+      - name: reporting_month
+        tests:
+          - not_null
+        tags: ["tdf", "common", "gainsight"]
+      - name: ping_date
+        tests:
+          - not_null
+        tags: ["tdf", "common", "gainsight"]
+      - name: usage_activity_by_stage_monthly.manage.events
+        description: umau_28_days_user
+      - name: usage_activity_by_stage_monthly.create.action_monthly_active_users_project_repo
+        description: action_monthly_active_users_project_repo_28_days_user
+      - name: usage_activity_by_stage_monthly.create.merge_requests
+        description: merge_requests_28_days_user
+      - name: usage_activity_by_stage_monthly.create.projects_with_repositories_enabled
+        description: projects_with_repositories_enabled_28_days_user
+      - name: counts.commit_comment
+        description: commit_comment_all_time_event
+      - name: counts.source_code_pushes
+        description: source_code_pushes_all_time_event
+      - name: usage_activity_by_stage_monthly.verify.ci_pipelines
+        description: ci_pipelines_28_days_user
+      - name: usage_activity_by_stage_monthly.verify.ci_internal_pipelines
+        description: ci_internal_pipelines_28_days_user
+      - name: usage_activity_by_stage_monthly.verify.ci_builds
+        description: ci_builds_28_days_user
+      - name: usage_activity_by_stage.verify.ci_builds
+        description: ci_builds_all_time_user
+      - name: counts.ci_builds
+        description: ci_builds_all_time_event
+      - name: counts.ci_runners
+        description: ci_runners_all_time_event
+      - name: counts.auto_devops_enabled
+        description: auto_devops_enabled_all_time_event
+      - name: gitlab_shared_runners_enabled
+        description: gitlab_shared_runners_enabled
+      - name: container_registry_enabled
+        description: container_registry_enabled
+      - name: counts.template_repositories
+        description: template_repositories_all_time_event
+      - name: usage_activity_by_stage_monthly.verify.ci_pipeline_config_repository
+        description: ci_pipeline_config_repository_28_days_user
+      - name: usage_activity_by_stage_monthly.secure.user_unique_users_all_secure_scanners
+        description: user_unique_users_all_secure_scanners_28_days_user
+      - name: usage_activity_by_stage_monthly.secure.user_sast_jobs
+        description: user_sast_jobs_28_days_user
+      - name: usage_activity_by_stage_monthly.secure.user_dast_jobs
+        description: user_dast_jobs_28_days_user
+      - name: usage_activity_by_stage_monthly.secure.user_dependency_scanning_jobs
+        description: user_dependency_scanning_jobs_28_days_user
+      - name: usage_activity_by_stage_monthly.secure.user_license_management_jobs
+        description: user_license_management_jobs_28_days_user
+      - name: usage_activity_by_stage_monthly.secure.user_secret_detection_jobs
+        description: user_secret_detection_jobs_28_days_user
+      - name: usage_activity_by_stage_monthly.secure.user_container_scanning_jobs
+        description: user_container_scanning_jobs_28_days_user
+      - name: object_store.packages.enabled
+        description: object_store_packages_enabled
+      - name: counts.projects_with_packages
+        description: projects_with_packages_all_time_event
+      - name: usage_activity_by_stage_monthly.package.projects_with_packages
+        description: projects_with_packages_28_days_user
+      - name: usage_activity_by_stage_monthly.release.deployments
+        description: deployments_28_days_user
+      - name: usage_activity_by_stage_monthly.release.releases
+        description: releases_28_days_user
+      - name: usage_activity_by_stage_monthly.plan.epics
+        description: epics_28_days_user
+      - name: usage_activity_by_stage_monthly.plan.issues
+        description: issues_28_days_user
+      - name: counts.ci_internal_pipelines
+        description: ci_internal_pipelines_all_time_event
+      - name: counts.ci_external_pipelines
+        description: ci_external_pipelines_all_time_event
+      - name: counts.merge_requests
+        description: merge_requests_all_time_event
+      - name: counts.todos
+        description: todos_all_time_event
+      - name: counts.epics
+        description: epics_all_time_event
+      - name: counts.issues
+        description: issues_all_time_event
+      - name: counts.projects
+        description: projects_all_time_event
+      - name: counts_monthly.deployments
+        description: deployments_28_days_event
+      - name: counts_monthly.packages
+        description: packages_28_days_event
+      - name: counts.sast_jobs
+        description: sast_jobs_all_time_event
+      - name: counts.dast_jobs
+        description: dast_jobs_all_time_event
+      - name: counts.dependency_scanning_jobs
+        description: dependency_scanning_jobs_all_time_event
+      - name: counts.license_management_jobs
+        description: license_management_jobs_all_time_event
+      - name: counts.secret_detection_jobs
+        description: secret_detection_jobs_all_time_event
+      - name: counts.container_scanning_jobs
+        description: container_scanning_jobs_all_time_event
+      - name: counts.projects_jenkins_active
+        description: projects_jenkins_active_all_time_event
+      - name: counts.projects_bamboo_active
+        description: projects_bamboo_active_all_time_event
+      - name: counts.projects_jira_active
+        description: projects_jira_active_all_time_event
+      - name: counts.projects_drone_ci_active
+        description: projects_drone_ci_active_all_time_event
+      - name: usage_activity_by_stage_monthly.manage.issues_imported.jira
+        description: jira_imports_28_days_event. This metric has been deprecated but we are keeping the field around for history.
+      - name: counts.projects_github_active
+        description: projects_github_active_all_time_event
+      - name: counts.projects_jira_server_active
+        description: projects_jira_server_active_all_time_event
+      - name: counts.projects_jira_dvcs_cloud_active
+        description: projects_jira_dvcs_cloud_active_all_time_event
+      - name: counts.projects_with_repositories_enabled
+        description: projects_with_repositories_enabled_all_time_event
+      - name: counts.protected_branches
+        description: protected_branches_all_time_event
+      - name: counts.remote_mirrors
+        description: remote_mirrors_all_time_event
+      - name: usage_activity_by_stage.create.projects_enforcing_code_owner_approval
+        description: projects_enforcing_code_owner_approval_28_days_user
+      - name: usage_activity_by_stage_monthly.configure.project_clusters_enabled
+        description: project_clusters_enabled_28_days_user
+      - name: analytics_total_unique_counts_monthly
+        description: analytics_total_unique_counts_monthly
+      - name: redis_hll_counters.issues_edit.issues_edit_total_unique_counts_monthly
+        description: issues_edit_total_unique_counts_monthly
+      - name: redis_hll_counters.user_packages.user_packages_total_unique_counts_monthly
+        description: user_packages_total_unique_counts_monthly
+      - name: redis_hll_counters.terraform.p_terraform_state_api_unique_users_monthly
+        description: terraform_state_api_unique_users_monthly
+      - name: redis_hll_counters.incident_management.incident_management_total_unique_counts_monthly
+        description: incident_management_total_unique_counts_monthly
+      - name: instance_auto_devops_enabled
+        description: auto_devops_enabled
+      - name: gitaly.clusters
+        description: gitaly_clusters_instance
+      - name: counts.epics_deepest_relationship_level
+        description: epics_deepest_relationship_level_instance
+      - name: counts.clusters_applications_cilium
+        description: clusters_applications_cilium_all_time_event
+      - name: counts.network_policy_forwards
+        description: network_policy_forwards_all_time_event
+      - name: counts.network_policy_drops
+        description: network_policy_drops_all_time_event
+      - name: counts.requirements_with_test_report
+        description: requirements_with_test_report_all_time_event
+      - name: counts.requirement_test_reports_ci
+        description: requirement_test_reports_ci_all_time_event
+      - name: counts.projects_imported_from_github
+        description: projects_imported_from_github_all_time_event
+      - name: counts.projects_jira_cloud_active
+        description: projects_jira_cloud_active_all_time_event
+      - name: counts.projects_jira_dvcs_server_active
+        description: projects_jira_dvcs_server_active_all_time_event
+      - name: counts.service_desk_issues
+        description: service_desk_issues_all_time_event
+      - name: usage_activity_by_stage.verify.ci_pipelines
+        description: ci_pipelines_all_time_user
+      - name: usage_activity_by_stage_monthly.plan.service_desk_issues
+        description: service_desk_issues_28_days_user
+      - name: usage_activity_by_stage_monthly.plan.projects_jira_active
+        description: projects_jira_active_28_days_user
+      - name: usage_activity_by_stage_monthly.plan.projects_jira_dvcs_cloud_active
+        description: projects_jira_dvcs_cloud_active_28_days_user
+      - name: usage_activity_by_stage_monthly.plan.projects_jira_dvcs_server_active
+        description: projects_jira_dvcs_server_active_28_days_user
+      - name: usage_activity_by_stage_monthly.create.merge_requests_with_required_codeowners
+        description: merge_requests_with_required_code_owners_28_days_user
+      - name: redis_hll_counters.analytics.g_analytics_valuestream_monthly
+        description: analytics_value_stream_28_days_event
+      - name: redis_hll_counters.code_review.i_code_review_user_approve_mr_monthly
+        description: code_review_user_approve_mr_28_days_user
+      - name: redis_hll_counters.epics_usage.epics_usage_total_unique_counts_monthly
+        description: epics_usage_28_days_user
+      - name: redis_hll_counters.ci_templates.ci_templates_total_unique_counts_monthly
+        description: ci_templates_usage_28_days_event
+      - name: redis_hll_counters.issues_edit.g_project_management_issue_milestone_changed_monthly
+        description: project_management_issue_milestone_changed_28_days_user
+      - name: redis_hll_counters.issues_edit.g_project_management_issue_iteration_changed_monthly
+        description: project_management_issue_iteration_changed_28_days_user
+
+  - name: prep_saas_usage_ping_subscription_mapped_wave_2_3_metrics
+    description: '{{ doc("prep_saas_usage_ping_subscription_mapped_wave_2_3_metrics") }}'
+    columns:
+      - name: dim_namespace_id
+      - name: dim_subscription_id
+      - name: reporting_month
+      - name: instance_type
+        description: Type of instance (Production/Non-Production)
+
+  - name: prep_saas_usage_ping_namespace
+    description: '{{ doc("prep_saas_usage_ping_namespace") }}'
+    columns:
+      - name: saas_usage_ping_gitlab_dotcom_namespace_id
+      - name: dim_namespace_id
+      - name: ping_name
+      - name: ping_date
+      - name: counter_value
+
+  - name: prep_event_all
+    description: '{{ doc("prep_event_all") }}'
+    columns:
+      - name: event_pk
+        # tests:
+          # - not_null
+          # - unique
+      - name: event_id
+        description: '{{ doc("event_id") }}'
+
+  - name: prep_ci_pipeline
+    description: '{{ doc("prep_ci_pipeline") }}'
+    columns:
+      - name: dim_ci_pipeline_id
+        tests:
+          - not_null
+          - unique
+
+  - name: prep_action
+    description: '{{ doc("prep_action") }}'
+    columns:
+      - name: dim_action_id
+        tests:
+          - unique:
+              config:
+                where: "created_at >= DATEADD('day',-3,CURRENT_DATE())"
+          - not_null
+      - name: dim_user_id
+      - name: dim_project_id
+      - name: dim_namespace_id
+      - name: ultimate_parent_dim_namespace_id
+
+  - name: prep_user
+    description: '{{ doc("prep_user") }}'
+    columns:
+      - name: dim_user_id
+        tests:
+          - unique
+          - not_null
+      - name: is_blocked_user
+        description: TRUE if user_state is one of 'blocked' or 'banned', otherwise FALSE
+      - name: role
+        description: User role in company selected during registration
+      - name: last_activity_date
+        description: Date of last User Activity
+      - name: last_sign_in_date
+        description: Last time the User signed in
+      - name: setup_for_company  
+        description: Is the Product setup for Company use selected during registration
+      - name: jobs_to_be_done
+        description:  What the product is used for
+      - name: for_business_use
+        description: Product is used for Business selected during registration
+      - name: employee_count
+        description: Number of employees selected during registraion
+      - name: country
+        description: User Country selected during registration
+      - name: state
+        description: A state that is part of the given country selected during registration 
+
+  - name: prep_ci_build
+    description: '{{ doc("prep_ci_build") }}'
+    columns:
+      - name: dim_ci_build_id
+        description: Unique key of CI Build
+        tests:
+          - not_null
+          - unique:
+              config:
+                where: "created_at >= DATEADD('day',-3,CURRENT_DATE())"
+      - name: dim_project_id
+        description: Foreign key that shows the ID of the project in which the build has been triggered.
+      - name: dim_namespace_id
+        description: Foreign key that shows the ID of the namespace in which the build has been triggered.
+      - name: ultimate_parent_namespace_id
+      - name: dim_user_id
+        description: Foreign key that shows the ID of the user who triggered the CI Build
+      - name: dim_plan_id
+        description: ID of the Plan
+      - name: dim_ci_runner_id
+        description: ID of the runner with which the CI build has been run.
+      - name: dim_ci_stage_id
+
+  - name: prep_ci_runner
+    description: '{{ doc("prep_ci_runner") }}'
+    columns:
+      - name: dim_ci_runner_id
+        description: The unique ID of the runner with which the CI build has been run
+        tests:
+          - not_null
+          - unique
+      - name: created_date_id
+      - name: created_at
+      - name: updated_at
+      - name: ci_runner_description
+      - name: contacted_at
+      - name: is_active
+      - name: runner_name
+      - name: ci_runner_version
+      - name: revision
+      - name: platform
+      - name: architecture
+      - name: is_untagged
+      - name: is_locked
+      - name: access_level
+      - name: ip_address
+      - name: maximum_timeout
+      - name: runner_type
+      - name: public_projects_minutes_cost_factor
+      - name: private_projects_minutes_cost_factor
+      - name: cost_factor
+        description: '{{ doc("cost_factor") }}'
+
+  - name: prep_ci_stage
+    description: '{{ doc("dim_ci_stage") }}'
+    columns:
+      - name: dim_ci_stage_id
+        tests:
+          - not_null
+          - unique:
+              config:
+                where: "created_at >= DATEADD('day',-3,CURRENT_DATE())"
+      - name: dim_project_id
+        description: Foreign key to `dim_project` that shows the ID of the project in which the stage was run. Defaults to `-1` if a project ID from the CI builds source table is not found in `dim_project`.
+        tests:
+          - not_null
+      - name: dim_ci_pipeline_id
+        description: Foreign key to `dim_ci_pipeline` that shows the ID of the pipeline in which the stage was run. Defaults to `-1` if a CI pipeline ID from the CI builds source table is not found in `dim_ci_pipeline`.
+        tests:
+          - not_null
+      - name: created_date_id
+        description: Foreign key to `dim_date` that shows the ID of the date on which the stage was created. Defaults to `-1` if a date ID from the CI builds source table is not found in `dim_date`.
+        tests:
+          - not_null
+      - name: created_at
+        tests:
+          - not_null
+
+  - name: prep_issue
+    description: '{{ doc("prep_issue") }}'
+    columns:
+      - name: dim_issue_sk
+        tests:
+          - unique
+          - not_null
+      - name: masked_label_title
+        description: '{{ doc("label_title") }}'
+
+  - name: prep_note
+    description: '{{ doc("prep_note") }}'
+    columns:
+      - name: dim_note_id
+        tests:
+          - unique
+          - not_null
+
+  - name: prep_merge_request
+    description: '{{ doc("prep_merge_request") }}'
+    columns:
+      - name: dim_merge_request_sk
+        tests:
+          - unique
+          - not_null
+
+  - name: prep_member_accepted_invites
+    description: '{{ doc("prep_member_accepted_invites") }}'
+    columns:
+      - name: dim_member_id
+        tests:
+          - unique
+          - not_null
+      - name: ultimate_parent_namespace_id
+        tests:
+          - not_null
+
+  - name: prep_epic
+    description: '{{ doc("prep_epic") }}'
+    columns:
+      - name: dim_epic_sk
+        tests:
+          - unique
+          - not_null
+      - name: dim_plan_id_at_creation
+        description: '{{ doc("dim_plan_id_at_creation") }}'
+      - name: is_internal_epic
+        description: '{{ doc("is_internal_epic") }}'
+
+  - name: prep_deployment
+    description: '{{ doc("prep_deployment") }}'
+    columns:
+      - name: dim_deployment_id
+        tests:
+          - not_null
+          - unique
+  - name: prep_issue_severity
+    description: '{{ doc("prep_issue_severity") }}'
+    columns:
+      - name: dim_issue_severity_id
+        tests:
+          - not_null
+          - unique
+      - name: issue_id
+        tests:
+          - not_null
+          - unique
+  - name: prep_label_links
+    description: '{{ doc("prep_label_links") }}'
+    columns:
+      - name: dim_label_link_id
+        tests:
+          - not_null
+          - unique
+      - name: dim_label_id
+        tests:
+          - not_null
+  - name: prep_labels
+    description: '{{ doc("prep_labels") }}'
+    columns:
+      - name: dim_label_id
+        tests:
+          - not_null
+          - unique
+  - name: prep_issue_links
+    description: '{{ doc("prep_issue_links") }}'
+    columns:
+      - name: dim_issue_link_id
+        tests:
+          - not_null
+      - name: dim_issue_sk_source
+        tests:
+          - not_null
+      - name: dim_issue_sk_target
+        tests:
+          - not_null
+
+  - name: prep_package
+    description: '{{ doc("prep_package") }}'
+    columns:
+      - name: dim_package_sk
+        description: '{{ ("dim_package_sk") }}'
+        tests:
+          - not_null
+          - unique
+      - name: package_id
+        description: '{{ ("package_id") }}'
+      - name: dim_project_id
+        description: '{{ ("dim_project_id") }}'
+      - name: dim_namespace_id
+        description: '{{ ("dim_namespace_id") }}'
+      - name: ultimate_parent_namespace_id
+        description: '{{ ("dim_ultimate_parent_namespace_id") }}'
+      - name: dim_plan_id
+        description: '{{ ("dim_plan_id") }}'
+      - name: creator_id
+        description: '{{ ("dim_user_id") }}'
+      - name: package_version
+        description: '{{ ("package_version") }}'
+      - name: package_type
+        description: '{{ ("package_type") }}'
+      - name: created_at
+        description: '{{ ("package_created_at") }}'
+      - name: updated_at
+        description: '{{ ("package_updated_at") }}'
+
+  - name: prep_release
+    description: '{{ doc("prep_release") }}'
+    columns:
+      - name: dim_release_id
+        tests:
+          - unique
+          - not_null
+
+  - name: prep_requirement
+    description: '{{ doc("prep_requirement") }}'
+    columns:
+      - name: dim_requirement_sk
+        description: '{{ doc("dim_requirement_sk") }}'
+        tests:
+          - unique
+          - not_null
+      - name: requirement_id
+        description: '{{ doc("requirement_id") }}'
+      - name: dim_project_id
+        description: '{{ doc("dim_project_id") }}'
+      - name: ultimate_parent_namespace_id
+        description: '{{ doc("dim_ultimate_parent_namespace_id") }}'
+      - name: dim_plan_id
+        description: '{{ doc("dim_plan_id") }}'
+      - name: author_id
+        description: '{{ doc("dim_user_id") }}'
+      - name: created_date_id
+        description: '{{ doc("created_date_id") }}'
+      - name: requirement_internal_id
+        description: '{{ doc("requirement_internal_id") }}'
+      - name: requirement_state
+        description: '{{ doc("requirement_state") }}'
+      - name: created_at
+        description: '{{ doc("requirement_created_at") }}'
+      - name: updated_at
+        description: '{{ doc("requirement_updated_at") }}'
+
+  - name: prep_geozone
+    description: '{{ doc("prep_geozone") }}'
+    columns:
+      - name: geozone_title
+        description: The label of a geographical region.
+      - name: geozone_factor
+        description: The location factor for the given geozone.
+        tests:
+          - not_null
+      - name: geozone_locality
+        description: The locality at the level of the given geozone.
+      - name: country_locality
+        description: The locality at the level of the given country.
+      - name: geozone_country
+        description: A country that is part of the given geozone.
+      - name: geozone_state_or_province
+        description: A state or province that is part of the given country
+      - name: valid_from
+        description: The date the location factor for a locality begins being applied.
+      - name: valid_to
+        description: The date the location factor for a locality stops being applied.
+      - name: is_current
+        description: A flag to indicate if the location factor for the locality is from the most recent source data.
+
+  - name: prep_location_factor
+    description: '{{ doc("prep_location_factor") }}'
+    columns:
+      - name: location_factor_country
+        description: The country of the given locality.
+      - name: location_factor_area
+        description: The combination of state or province and metro area of a given locality.
+      - name: location_factor_states_or_provinces
+        description: The state or province of a given locality.
+      - name: location_factor_metro_area
+        description: The metro area of a given locality.
+      - name: locality
+        description: The combination of area and country that uniquely defines a geographic location.
+        tests:
+          - not_null
+      - name: location_factor
+        description: The label of a geographical region.
+      - name: valid_from
+        description: The date the location factor for a locality begins being applied.
+      - name: valid_to
+        description: The date the location factor for a locality stops being applied.
+      - name: is_current
+        description: A flag to indicate if the location factor for the locality is from the most recent source data.
+
+  - name: prep_host
+    description: The host_id and host_name of the self-managed instance.
+    columns:
+      - name: dim_host_id
+        tests:
+          - not_null
+          - unique
+      - name: host_name
+
+  - name: prep_todo
+    description: Prep table used in `prep_event`
+    columns:
+      - name: dim_todo_id
+        tests:
+          - not_null
+          - unique
+      - name: author_id
+        description: The user id of the todo author
+      - name: target_type
+        description: The type of item the todo was created on
+      - name: state
+        description: Can be either 'pending' or 'done'
+
+  - name: prep_resource_label
+    description: Prep table used in `prep_event`
+    columns:
+      - name: dim_issue_label_id
+        tests:
+          - not_null
+          - unique
+
+  - name: prep_environment_event
+    description: Prep table used in `prep_event`
+    columns:
+      - name: dim_environment_id
+        tests:
+          - not_null
+          - unique
+
+  - name: prep_resource_milestone
+    desctiption: Prep table used in `prep_event`
+    columns:
+      - name: dim_resource_milestone_id
+        tests:
+          - not_null
+          - unique
+
+  - name: prep_ci_artifact
+    description: Prep table used in `prep_event`
+    columns:
+      - name: dim_ci_job_artifact_id
+        tests:
+          - not_null
+          - unique
+
+  - name: prep_board
+    description: Prep table used in `prep_event`
+    columns:
+      - name: dim_board_id
+        tests:
+          - not_null
+          - unique
+
+  - name: prep_project_auto_devops
+    description: Prep table used in `prep_event`
+    columns:
+      - name: dim_auto_devops_id
+        tests:
+          - not_null
+          - unique
+
+  - name: prep_integration
+    description: Prep table used in `prep_event`
+    columns:
+      - name: dim_integration_sk
+        description: '{{ doc("dim_integration_sk") }}'
+        tests:
+          - not_null
+          - unique
+      - name: integration_id
+        description: '{{ doc("integration_id") }}'
+      - name: dim_project_id
+        description: '{{ doc("dim_project_id") }}'
+      - name: ultimate_parent_namespace_id
+        description: '{{ doc("dim_ultimate_parent_namespace_id") }}'
+      - name: dim_plan_id
+        description: '{{ doc("dim_plan_id") }}'
+      - name: integration_type
+        description: '{{ doc("integration_type") }}'
+      - name: integration_category
+        description: '{{ doc("integration_category") }}'
+      - name: is_active
+        description: '{{ doc("integration_is_active") }}'
+      - name: created_at
+        description: '{{ doc("integration_created_at") }}'
+      - name: updated_at
+        description: '{{ doc("integration_updated_at") }}'
+
+  - name: prep_issue_resource_weight
+    description: Prep table used in `prep_event`
+    columns:
+      - name: dim_resource_weight_id
+        tests:
+          - not_null
+          - unique
+
+  - name: prep_milestone
+    description: '{{ doc("prep_milestone") }}'
+    columns:
+      - name: dim_milestone_sk
+        description: '{{ doc("dim_milestone_sk") }}'
+        tests:
+          - not_null
+          - unique
+      - name: milestone_id
+        description: '{{ doc("milestone_id") }}'
+      - name: dim_milestone_id
+        description: '{{ doc("dim_milestone_id") }}'
+      - name: created_at
+        description: '{{ doc("milestone_created_at") }}'
+      - name: updated_at
+        description: '{{ doc("milestone_updated_at") }}'
+      - name: created_date_id
+        description: '{{ doc("milestone_created_date_id") }}'
+      - name: dim_project_id
+        description: '{{ doc("dim_project_id") }}'
+      - name: ultimate_parent_namespace_id
+        description: '{{ doc("dim_ultimate_parent_namespace_id") }}'
+      - name: dim_plan_id
+        description: '{{ doc("dim_plan_id") }}'
+      - name: milestone_title
+        description: '{{ doc("milestone_title") }}'
+      - name: milestone_description
+        description: '{{ doc("milestone_description") }}'
+      - name: milestone_start_date
+        description: '{{ doc("milestone_start_date") }}'
+      - name: milestone_due_date
+        description: '{{ doc("milestone_due_date") }}'
+      - name: milestone_status
+        description: '{{ doc("milestone_status") }}'
+
+  - name: prep_ci_pipeline_schedule
+    description: Prep table used in `prep_event`
+    columns:
+      - name: dim_ci_pipeline_schedule_id
+        tests:
+          - not_null
+          - unique
+
+  - name: prep_ci_trigger
+    description: Prep table used in `prep_event`
+    columns:
+      - name: dim_ci_trigger_id
+        tests:
+          - not_null
+          - unique
+
+  - name: prep_snippet
+    description: Prep table used in `prep_event`
+    columns:
+      - name: dim_snippet_sk
+        description: '{{ doc("dim_snippet_sk") }}'
+        tests:
+          - not_null
+          - unique
+      - name: snippet_id
+        description: '{{ doc("snippet_id") }}'
+      - name: author_id
+        description: '{{ doc("dim_user_id") }}'
+      - name: dim_project_id
+        description: '{{ doc("dim_project_id") }}'
+      - name: ultimate_parent_namespace_id
+        description: '{{ doc("dim_ultimate_parent_namespace_id") }}'
+      - name: dim_plan_id
+        description: '{{ doc("dim_plan_id") }}'
+      - name: snippet_type
+        description: '{{ doc("snippet_type") }}'
+      - name: visibility_level
+        description: '{{ doc("visibility_level") }}'
+      - name: created_at
+        description: '{{ doc("snippet_created_at") }}'
+      - name: updated_at
+        description: '{{ doc("snippet_updated_at") }}'
+
+  - name: prep_ping_instance
+    description: ' {{ doc("prep_ping_instance") }} '
+    columns:
+      - name: dim_ping_instance_id
+        tests:
+          - not_null
+          - unique
+        description: '{{ doc("dim_ping_instance_id") }}'
+      - name: dim_host_id
+        description: '{{ doc("dim_host_id") }}'
+      - name: dim_instance_id
+        description:  '{{ doc("dim_instance_id") }}'
+      - name: dim_installation_id
+        description:  '{{ doc("dim_installation_id") }}'
+      - name: ping_created_at
+        description: '{{ doc("ping_created_at") }}'
+      - name: uploaded_at
+        description: '{{ doc("uploaded_at") }}'
+        tests:
+          - not_null
+      - name: original_edition
+        description: '{{ doc("original_edition") }}'
+      - name: id
+        description: '{{ doc("id_ping_model") }}'
+      - name: version
+        description: '{{ doc("version_ping_model") }}'
+      - name: ip_address_hash
+        description: '{{ doc("ip_address_hash_ping_model") }}'
+      - name: instance_user_count
+        description: '{{ doc("instance_user_count") }}'
+      - name: license_md5
+        description: '{{ doc("license_md5") }}'
+      - name: license_sha256
+        description: '{{ doc("license_sha256") }}'
+      - name: historical_max_users
+        description: '{{ doc("historical_max_users") }}'
+      - name: license_user_count
+        description: '{{ doc("license_user_count") }}'
+      - name: license_starts_at
+        description: '{{ doc("license_starts_at") }}'
+      - name: license_expires_at
+        description:  '{{ doc("license_expires_at") }}'
+      - name: license_add_ons
+        description: '{{ doc("license_add_ons") }}'
+      - name: recorded_at
+        description: '{{ doc("recorded_at_ping_model") }}'
+      - name: updated_at
+        description: '{{ doc("updated_at_ping_model") }}'
+      - name: mattermost_enabled
+        description: '{{ doc("mattermost_enabled") }}'
+      - name: uuid
+        description: '{{ doc("uuid_ping_model") }}'
+      - name: hostname
+        description: '{{ doc("host_name") }}'
+      - name: host_id
+        description: '{{ doc("host_id") }}'
+      - name: license_trial
+        description: '{{ doc("license_trial_ping_model") }}'
+      - name: source_license_id
+        description: '{{ doc("source_license_id") }}'
+      - name: installation_type
+        description: '{{ doc("installation_type") }}'
+      - name: license_plan
+        description: '{{ doc("license_plan") }}'
+      - name: database_adapter
+        description: '{{ doc("database_adapter") }}'
+      - name: database_version
+        description: '{{ doc("database_version") }}'
+      - name: git_version
+        description: '{{ doc("git_version") }}'
+      - name: gitlab_pages_enabled
+        description: '{{ doc("gitlab_pages_enabled") }}'
+      - name: gitlab_pages_version
+        description: '{{ doc("gitlab_pages_version") }}'
+      - name: container_registry_enabled
+        description: '{{ doc("container_registry_enabled") }}'
+      - name: elasticsearch_enabled
+        description: '{{ doc("elasticsearch_enabled") }}'
+      - name: geo_enabled
+        description: '{{ doc("geo_enabled") }}'
+      - name: gitlab_shared_runners_enabled
+        description: '{{ doc("gitlab_shared_runners_enabled") }}'
+      - name: gravatar_enabled
+        description: '{{ doc("gravatar_enabled") }}'
+      - name: ldap_enabled
+        description: '{{ doc("ldap_enabled") }}'
+      - name: omniauth_enabled
+        description: '{{ doc("omniauth_enabled") }}'
+      - name: reply_by_email_enabled
+        description: '{{ doc("reply_by_email_enabled") }}'
+      - name: signup_enabled
+        description: '{{ doc("signup_enabled") }}'
+      - name: prometheus_metrics_enabled
+        description: '{{ doc("prometheus_metrics_enabled") }}'
+      - name: usage_activity_by_stage
+        description: '{{ doc("usage_activity_by_stage") }}'
+      - name: usage_activity_by_stage_monthly
+        description: '{{ doc("usage_activity_by_stage_monthly") }}'
+      - name: gitaly_clusters
+        description: '{{ doc("gitaly_clusters") }}'
+      - name: gitaly_version
+        description: '{{ doc("gitaly_version") }}'
+      - name: gitaly_servers
+        description: '{{ doc("gitaly_servers") }}'
+      - name: gitaly_filesystems
+        description: '{{ doc("gitaly_filesystems") }}'
+      - name: gitpod_enabled
+        description: '{{ doc("gitpod_enabled") }}'
+      - name: object_store
+        description: '{{ doc("object_store") }}'
+      - name: is_dependency_proxy_enabled
+        description: '{{ doc("is_dependency_proxy_enabled") }}'
+      - name: recording_ce_finished_at
+        description: '{{ doc("recording_ce_finished_at") }}'
+      - name: recording_ee_finished_at
+        description: '{{ doc("recording_ee_finished_at") }}'
+      - name: stats_used
+        description: '{{ doc("stats_used") }}'
+      - name: counts
+        description: '{{ doc("stats_used") }}'
+      - name: is_ingress_modsecurity_enabled
+        description: '{{ doc("is_ingress_modsecurity_enabled") }}'
+      - name: topology
+        description: '{{ doc("topology") }}'
+      - name: is_grafana_link_enabled
+        description: '{{ doc("is_grafana_link_enabled") }}'
+      - name: analytics_unique_visits
+        description: '{{ doc("analytics_unique_visits") }}'
+      - name: raw_usage_data_id
+        description: '{{ doc("raw_usage_data_id") }}'
+      - name: container_registry_vendor
+        description: '{{ doc("container_registry_vendor") }}'
+      - name: container_registry_version
+        description: '{{ doc("container_registry_version") }}'
+      - name: main_edition
+        description: '{{ doc("ping_edition") }}'
+      - name: product_tier
+        description: '{{ doc("ping_product_tier") }}'
+      - name: raw_usage_data_payload
+        description: '{{ doc("raw_usage_data_payload") }}'
+      - name: created_by
+        description: '{{ doc("created_by") }}'
+      - name: updated_by
+        description: '{{ doc("updated_by") }}'
+      - name: model_created_date
+        description: '{{ doc("model_created_date") }}'
+      - name: model_updated_date
+        description: '{{ doc("model_updated_date") }}'
+      - name: ping_type
+        description: '{{ doc("ping_type") }}'
+      - name: is_saas_dedicated
+        description: '{{ doc("is_saas_dedicated") }}'
+      - name: ping_delivery_type
+        description: '{{ doc("ping_delivery_type") }}'
+      - name: ping_deployment_type
+        description: '{{ doc("ping_deployment_type") }}'
+
+
+  - name: prep_ping_instance_flattened
+    description: ' {{ doc("prep_ping_instance_flattened") }} '
+    columns:
+      - name: ping_instance_flattened_id
+        tests:
+          - not_null
+          #- unique --Commenting this as the model is erroring out due to a waarehouse timeout limit of 1800 seconds
+        description: The unique ID of the prep_ping_instance_flattened model consisting of dim_ping_instance_id and path
+      - name: dim_ping_instance_id
+        description: '{{ doc("dim_ping_instance_id") }}'
+      - name: dim_host_id
+        description: '{{ doc("dim_host_id") }}'
+      - name: dim_instance_id
+        description:  '{{ doc("dim_instance_id") }}'
+      - name: dim_installation_id
+        description:  '{{ doc("dim_installation_id") }}'
+      - name: ping_created_at
+        description: '{{ doc("ping_created_at") }}'
+      - name: uploaded_at
+        description: '{{ doc("prep_ping_instance_flattened_uploaded_at") }}'
+      - name: ip_address_hash
+        description: '{{ doc("ip_address_hash_ping_model") }}'
+      - name: license_md5
+        description: '{{ doc("license_md5") }}'
+      - name: license_sha256
+        description: '{{ doc("license_sha256") }}'
+      - name: original_edition
+        description: '{{ doc("original_edition") }}'
+      - name: main_edition
+        description: '{{ doc("ping_edition") }}'
+      - name: product_tier
+        description: '{{ doc("ping_product_tier") }}'
+      - name: license_trial_ends_on
+        description: '{{ doc("license_trial_ends_on") }}'
+      - name: license_subscription_id
+        description: '{{ doc("license_subscription_id") }}'
+      - name: umau_value
+        description: '{{ doc("umau_value") }}'
+      - name: metrics_path
+        description: '{{ doc("metrics_path") }}'
+      - name: metric_value
+        description: '{{ doc("metric_value") }}'
+      - name: has_timed_out
+        description: '{{ doc("has_timed_out") }}'
+      - name: created_by
+        description: '{{ doc("created_by") }}'
+      - name: updated_by
+        description: '{{ doc("updated_by") }}'
+      - name: model_created_date
+        description: '{{ doc("model_created_date") }}'
+      - name: model_updated_date
+        description: '{{ doc("model_updated_date") }}'
+      - name: is_saas_dedicated
+        description: '{{ doc("is_saas_dedicated") }}'
+      - name: ping_delivery_type
+        description: '{{ doc("ping_delivery_type") }}'
+      - name: ping_deployment_type
+        description: '{{ doc("ping_deployment_type") }}'
+      - name: ping_type
+        description: '{{ doc("ping_type") }}'
+      - name: version
+        description: '{{ doc("version_ping_model") }}'
+
+  - name: prep_billing_account_user
+    description: Zuora Billing users
+    columns:
+      - name: zuora_user_id
+        description: Unique identifier of a Zuora Billing user
+        tests:
+          - not_null
+          - unique
+      - name: email
+        description: email account associated with a Zuora Billing user
+      - name: first_name
+        description: First name of Zuora Billing user
+      - name: last_name
+        description: Last name of Zuora Billing user
+      - name: user_name
+        description: User name displayed in the UI for Zuora Billing user
+      - name: created_date
+        description: Date the Zuora Billing user was created
+      - name: is_integration_user
+        description: A flag indentifying integration users based on Zuora Billing user last names.
+
+  - name: prep_crm_task
+    description: '{{ doc("prep_crm_task") }}'
+    columns:
+      - name: dim_crm_task_sk
+        description: The unique surrogate key of a [task activity](https://help.salesforce.com/s/articleView?id=sf.tasks.htm&type=5) related to Salesforce account, opportunity, lead, or contact.
+        tests:
+          - unique
+          - not_null
+      - name: full_comments
+        meta:
+           masking_policy: data_science_sensitive
+      - name: task_subject
+        meta:
+           masking_policy: data_science_sensitive
+
+  - name: prep_performance_indicators_yaml
+    description: '{{ doc("prep_performance_indicators_yaml") }}'
+    columns:
+      - name: performance_indicator_pk
+        description: The unique composite ID for the prep_performance_indicators_yaml consisting of _dbt_source_relation and unique_key
+        tests:
+          - not_null
+          - unique
+      - name: _dbt_source_relation
+        description: Data source (in Snowflake) for performance indicator data (ex. `"PREP".gitlab_data_yaml.performance_indicators_ops_section_source`)
+      - name: unique_key
+        description: The unique composite ID for the PI's historical record, consisting of pi_name, org_name, pi_defintion, is_key, is_public, is_embedded, pi_target, pi_metric_target_name, pi_monthly_recorded_targets, pi_monthly_estimated_targets, and pi_url. This ID is generated by the [`create_pi_source_table` macro](https://dbt.gitlabdata.com/#!/macro/macro.gitlab_snowflake.create_pi_source_table) in the source models.
+      - name: pi_name
+        description: The `name` field from the PI yaml files
+      - name: org_name
+        description: The `org` field from the PI yaml files
+      - name: pi_definition
+        description: The `definition` field from the PI yaml files
+      - name: is_key
+        description: The `is_key` field from the PI yaml files
+      - name: is_primary
+        description: The `is_primary` field from the PI yaml files
+      - name: is_public
+        description: The `public` field from the PI yaml files
+      - name: is_embedded
+        description: Boolean flag set to True if the performance indicator has a chart embedded in the handbook, based on the `sisense_data` field in the PI yaml files. This is defined as `sisense_data IS NOT NULL`
+      - name: pi_target
+        description: The `target` field in the PI yaml files
+      - name: pi_metric_target_name
+        description: The `target_name` field in the PI yaml files
+      - name: pi_monthly_recorded_targets
+        description: The `monthly_recorded_targets` field in the PI yaml files
+      - name: pi_monthly_estimated_targets
+        description: The `monthly_estimated_targets` field in the PI yaml files. This field is used to generate targets in [`fct_performance_indicator_targets`](https://dbt.gitlabdata.com/#!/model/model.gitlab_snowflake.fct_performance_indicator_targets)
+      - name: pi_metric_name
+        description: The `metric_name` field in the PI yaml files. This field is used to identify the target metric in [`fct_performance_indicator_targets`](https://dbt.gitlabdata.com/#!/model/model.gitlab_snowflake.fct_performance_indicator_targets)
+      - name: telemetry_type
+        description: The `telemetry_type` field in the PI yaml files
+      - name: pi_url
+        description: The `urls` field from the PI yaml files
+      - name: sisense_chart_id
+        description: The `chart` value from the `sisense_data` field of the PI yaml files
+      - name: sisense_dashboard_id
+        description: The `dashboard` value from the `sisense_data` field of the PI yaml files
+      - name: snapshot_date
+        description: The date the snapshot record was created
+      - name: date_first_added
+        description: This identifies when the PI was first added. Note, since we started capturing the data on 2020-08-18, this will be the date for all performance indicators that existed before data collection started.
+      - name: valid_from_date
+        description: The first date the record was valid (YYYY-MM-DD). This column can be used to order the different "versions" of a record. This value is used to dedupe records.
+      - name: valid_to_date
+        description: The last date the record was valid (YYYY-MM-DD)
+      - name: created_by
+        description: '{{ doc("created_by") }}'
+      - name: updated_by
+        description: '{{ doc("updated_by") }}'
+      - name: model_created_date
+        description: '{{ doc("model_created_date") }}'
+      - name: model_updated_date
+        description: '{{ doc("model_updated_date") }}'
+
+  - name: prep_date
+    description: Join on this table to add additional date complexity
+    columns:
+        - name: date_day
+          description: '{{ doc("date_date_day") }}'
+
+        - name: date_actual
+          description: '{{ doc("date_date_actual") }}'
+
+        - name: day_name
+          description: '{{ doc("date_day_name") }}'
+
+        - name: month_actual
+          description: '{{ doc("date_month_actual") }}'
+
+        - name: year_actual
+          description: '{{ doc("date_year_actual") }}'
+
+        - name: quarter_actual
+          description: '{{ doc("date_quarter_actual") }}'
+
+        - name: day_of_week
+          description: '{{ doc("date_day_of_week") }}'
+
+        - name: first_day_of_week
+          description: '{{ doc("date_first_day_of_week") }}'
+
+        - name: week_of_year
+          description: '{{ doc("date_week_of_year") }}'
+
+        - name: day_of_month
+          description: '{{ doc("date_day_of_month") }}'
+
+        - name: day_of_quarter
+          description: '{{ doc("date_day_of_quarter") }}'
+
+        - name: day_of_year
+          description: '{{ doc("date_day_of_year") }}'
+
+        - name: fiscal_year
+          description: '{{ doc("date_fiscal_year") }}'
+
+        - name: fiscal_quarter
+          description: '{{ doc("date_fiscal_quarter") }}'
+
+        - name: day_of_fiscal_quarter
+          description: '{{ doc("date_day_of_fiscal_quarter") }}'
+
+        - name: day_of_fiscal_year
+          description: '{{ doc("date_day_of_fiscal_year") }}'
+
+        - name: month_name
+          description: '{{ doc("date_month_name") }}'
+
+        - name: first_day_of_month
+          description: '{{ doc("date_first_day_of_month") }}'
+
+        - name: last_day_of_month
+          description: '{{ doc("date_last_day_of_month") }}'
+
+        - name: first_day_of_year
+          description: '{{ doc("date_first_day_of_year") }}'
+
+        - name: last_day_of_year
+          description: '{{ doc("date_last_day_of_year") }}'
+
+        - name: first_day_of_quarter
+          description: '{{ doc("date_first_day_of_quarter") }}'
+
+        - name: last_day_of_quarter
+          description: '{{ doc("date_last_day_of_quarter") }}'
+
+        - name: first_day_of_fiscal_quarter
+          description: '{{ doc("date_first_day_of_fiscal_quarter") }}'
+
+        - name: last_day_of_fiscal_quarter
+          description: '{{ doc("date_last_day_of_fiscal_quarter") }}'
+
+        - name: first_day_of_fiscal_year
+          description: '{{ doc("date_first_day_of_fiscal_year") }}'
+
+        - name: last_day_of_fiscal_year
+          description: '{{ doc("date_last_day_of_fiscal_year") }}'
+
+        - name: week_of_fiscal_year
+          description: '{{ doc("date_week_of_fiscal_year") }}'
+
+        - name: month_of_fiscal_year
+          description: '{{ doc("date_month_of_fiscal_year") }}'
+
+        - name: last_day_of_week
+          description: '{{ doc("date_last_day_of_week") }}'
+
+        - name: quarter_name
+          description: '{{ doc("date_quarter_name") }}'
+
+        - name: fiscal_quarter_name
+          description: '{{ doc("date_fiscal_quarter_name") }}'
+
+        - name: fiscal_quarter_name_fy
+          description: '{{ doc("date_fiscal_quarter_name_fy") }}'
+
+        - name: fiscal_quarter_number_absolute
+          description: '{{ doc("date_fiscal_quarter_number_absolute") }}'
+
+        - name: fiscal_month_name
+          description: '{{ doc("date_fiscal_month_name") }}'
+
+        - name: fiscal_month_name_fy
+          description: '{{ doc("date_fiscal_month_name_fy") }}'
+
+        - name: holiday_desc
+          description: '{{ doc("date_holiday_desc") }}'
+
+        - name: is_holiday
+          description: '{{ doc("date_is_holiday") }}'
+
+        - name: last_month_of_fiscal_quarter
+          description: '{{ doc("date_last_month_of_fiscal_quarter") }}'
+
+        - name: is_first_day_of_last_month_of_fiscal_quarter
+          description: '{{ doc("date_is_first_day_of_last_month_of_fiscal_quarter") }}'
+
+        - name: last_month_of_fiscal_year
+          description: '{{ doc("date_last_month_of_fiscal_year") }}'
+
+        - name: is_first_day_of_last_month_of_fiscal_year
+          description: '{{ doc("date_is_first_day_of_last_month_of_fiscal_year") }}'
+          
+        - name: snapshot_date_fpa
+          description: '{{ doc("date_snapshot_date_fpa") }}'
+
+        - name: snapshot_date_billings
+          description: '{{ doc("date_snapshot_date_billings") }}'
+
+        - name: days_in_month_count
+          description: '{{ doc("date_days_in_month_count") }}'
+
+  - name: prep_project
+    description: Prep table for project-level data. Used to build `dim_project`, in addition to other facts and dimensions
+    columns:
+      - name: member_count
+        description: Do not use this count, it is incorrect. Use [gitlab_dotcom_memberships](https://dbt.gitlabdata.com/#!/model/model.gitlab_snowflake.gitlab_dotcom_memberships) for member counts.
+      - name: has_merge_trains_enabled
+        description: '{{ doc("has_merge_trains_enabled") }}'
+
+  - name: prep_snowplow_unnested_events_all
+    description: '{{ doc("prep_snowplow_unnested_events_all") }}'
+    columns:
+      - name: event_label
+        description: '{{ doc("event_label") }}'
+      - name: clean_event_label
+        description: '{{ doc("clean_event_label") }}'
+      - name: has_performance_timing_context
+        description: '{{ doc("has_performance_timing_context") }}'
+      - name: has_web_page_context
+        description: '{{ doc("has_web_page_context") }}'
+      - name: has_ci_build_failed_context
+        description: '{{ doc("has_ci_build_failed_context") }}'
+      - name: has_wiki_page_context
+        description: '{{ doc("has_wiki_page_context") }}'
+      - name: has_gitlab_standard_context
+        description: '{{ doc("has_gitlab_standard_context") }}'
+      - name: has_email_campaigns_context
+        description: '{{ doc("has_email_campaigns_context") }}'
+      - name: has_gitlab_service_ping_context
+        description: '{{ doc("has_gitlab_service_ping_context") }}'
+      - name: has_design_management_context
+        description: '{{ doc("has_design_management_context") }}'
+      - name: has_customer_standard_context
+        description: '{{ doc("has_customer_standard_context") }}'
+      - name: has_secure_scan_context
+        description: '{{ doc("has_secure_scan_context") }}'
+      - name: has_gitlab_experiment_context
+        description: '{{ doc("has_gitlab_experiment_context") }}'
+      - name: has_subscription_auto_renew_context
+        description: '{{ doc("has_subscription_auto_renew_context") }}'
+      - name: has_code_suggestions_context
+        description: '{{ doc("has_code_suggestions_context") }}'
+      - name: has_ide_extension_version_context
+        description: '{{ doc("has_ide_extension_version_context") }}'
+      - name: dim_behavior_contexts_sk
+        description: '{{ doc("dim_behavior_contexts_sk") }}'
+      - name: user_city
+        description: '{{ doc("user_city") }}'
+      - name: user_country
+        description: '{{ doc("user_country") }}'
+      - name: user_region
+        description: '{{ doc("user_region") }}'
+      - name: user_region_name
+        description: '{{ doc("user_region_name") }}'
+      - name: user_timezone_name
+        description: '{{ doc("user_timezone_name") }}'
+      - name: dim_user_location_sk
+        description: '{{ doc("dim_user_location_sk") }}'
+      - name: link_click_element_id
+        description: '{{ doc("link_click_element_id") }}'
+      - name: is_staging_event
+        description: '{{ doc("is_staging_event") }}'
+      - name: gitlab_global_user_id
+        description: '{{ doc("code_suggestions_gitlab_global_user_id") }}'
+      - name: gsc_feature_enabled_by_namespace_ids
+        description: '{{ doc("gsc_feature_enabled_by_namespace_ids") }}'
+
+  - name: prep_snowplow_page_views_all
+    description: View combining all snowplow_page_view partitions.
+    
+  - name: prep_team_member
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+            combination_of_columns:
+              - employee_id
+              - valid_from
+    columns:
+      - name: employee_id
+        description: Workday Employee Identification 
+        tests:
+          - not_null
+      - name: valid_from
+        tests:
+          - not_null
+      - name: first_name
+      - name: last_name
+      - name: work_email
+        description: Team member work email
+      - name: gitlab_username
+        description: Team member gitlab username 
+      - name: region
+        description: Current/latest region the team member resides in
+      - name: team_id
+        description: Identification number of the team to which the particular team member belongs
+      - name: hire_date
+        description: Most recent hire date. Field is updated if a team member is re-hired after a termination
+      - name: termination_date
+        description: NULL if team member is a current employee, otherwise it contains the most recent termination date
+      - name: is_current_team_member
+        description: True if the termination_date field is NULL, false otherwise. This flag captures whether the employee was employed at GitLab within the valid_from/valid_to timeframe
+      - name: is_rehire
+        description: True if team member has more than one hire event (more than one occurrance of hire_date)
+      - name: is_current
+        description: True if the current team member event is the most recent event
+      - name: country
+        description: Current/latest country the team member resides in
+        meta:
+          masking_policy: analyst_people_sensitive
+      - name: nationality
+        description: Masked. Team member nationality.
+        meta:
+          masking_policy: analyst_people_sensitive
+      - name: ethnicity 
+        description: Masked. Team member ethnicity.
+        meta:
+          masking_policy: analyst_people_sensitive
+      - name: gender 
+        description: Masked. Team member gender
+        meta:
+          masking_policy: analyst_people_sensitive
+      - name: date_of_birth 
+        description: Masked. Team member date of birth
+        meta:
+          masking_policy: analyst_people_sensitive
+      - name: key_talent_status 
+        description: Masked. Team member Key Talent status
+        meta:
+          masking_policy: analyst_people_sensitive
+      - name: growth_potential_rating 
+        description: Masked. Team member growth potential rating
+        meta:
+          masking_policy: analyst_people_sensitive
+      - name: performance_rating 
+        description: Masked. Team member performance rating
+        meta:
+          masking_policy: analyst_people_sensitive
+      - name: employee_type
+        description: The employee type from the following list - Employee (PEO or Entity), Contractor (Independent, customer-to-customer or PEO), Intern, Consultant.
+        meta:
+          masking_policy: analyst_people_sensitive
+
+  - name: prep_billing_account
+    description: '{{ doc("prep_billing_account") }}'
+    columns:
+      - name: dim_billing_account_sk
+        description: '{{ doc("dim_billing_account_sk") }}'
+        tests:
+          - not_null
+          - unique
+      - name: dim_crm_account_id
+        description: The customer account ID for the account
+      - name: billing_account_number
+        description: A unique Zuora account number
+      - name: billing_account_name
+        description: The name of the Zuora account
+      - name: account_status
+        description: The status of the account in the system. Can be draft, active, cancelled.
+      - name: parent_id
+        description: The identifier of the parent customer account      
+      - name: sfdc_account_code
+        description: The code for the account
+      - name: sfdc_entity
+      - name: account_currency
+        description: A currency as defined in Billing Settings in the Zuora UI
+      - name: sold_to_country
+        description: The country of the sold to contact
+      - name: ssp_channel
+      - name: po_required
+      - name: auto_pay
+      - name: is_deleted
+        description: The flag indicating if account has been deleted
+      - name: batch
+      - name: record_data_source
+        description: An indicator flag to identify if the record exists in Zuora or CDot or in both the sources. This column can be used to identify any missing records or data sync issues in both the sources.
+  
+  - name: prep_user_trial
+    description: '{{ doc("prep_user_trial") }}'
+    columns:
+      - name: dim_user_sk
+        description: '{{ doc("dim_user_sk") }}'
+        tests:
+          - not_null
+          - unique
+      - name: dim_user_id
+        description: The unique User ID in GitLab.com
+      - name: user_first_name
+        description: Masked. The first name of the User as entered by the user during registration
+      - name: user_last_name
+        description: Masked. The last name of the User as entered by the user during registration
+      - name: user_email
+        description: Masked. The email address of the user, usually a business email address
+      - name: user_created_at  
+      - name: user_updated_at
+      - name: sign_in_count
+        description: Tracks the number of times a user logged in.
+      - name: current_sign_in_at
+        description: Last time current user was active.
+      - name: last_sign_in_at
+        description: Last time the user logged in.
+      - name: user_provider
+        description: OAuth provider. Used for GL.com authentication.
+      - name: user_provider_user_id
+        description:  The User ID provided by the User to log in to  GitLab.com.
+      - name: country
+        description: User Country selected during registration
+      - name: state
+        description: A state that is part of the given country selected during registration 
+      - name: city
+        description: The city the user provided during the registration
+      - name: vat_code
+        description: Tax identification number. Used mostly in Europe.
+      - name: company
+        description: The company name as entered by the User
+      - name: company_size
+        description: The size of the company the user works for
+      - name: sfdc_account_id
+        description: Salesforce/CRM account ID associated with the user account
+      - name: is_user_billable
+        description: An indicator field with `True` or `false`, where `false means a purchase through a reseller.
+      - name: confirmed_at
+        description: Date when customer confirmed their account.
+      - name: confirmation_sent_at
+        description: Date used to expire the confirmation links  
+
+  - name: prep_team_member_position
+    description: '{{ doc("prep_team_member_position") }}'
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+            combination_of_columns:
+              - employee_id
+              - team_id
+              - valid_from
+    columns:
+      - name: dim_team_member_sk
+        description: A unique ID for each team member.
+        tests:
+          - not_null
+      - name: dim_team_sk
+        description: A unique ID for each team. This field didn't exist before the move to Workday
+      - name: employee_id
+        description: Unique ID of the team member.
+        tests:
+          - not_null
+      - name: manager
+        description: The team member's manager name
+      - name: suporg
+        description: The team member's suporg
+      - name: department
+        description: The team member's department
+      - name: division
+        description: The team member's division
+      - name: job_code
+        description: The code of the team member's job. Each level of seniority in a role has a different code. 
+      - name: job_specialty_single
+        description: The team member's job specialty.
+      - name: job_specialty_multi
+        description: The team member's job specialty (multi-select).
+      - name: position
+        description: The team member's role name.
+      - name: job_family
+        description: The team member's job family.
+      - name: management_level
+        description: The team member's management level.
+      - name: job_grade
+        description: The team member's job grade.
+      - name: entity
+        description: The team member's entity.
+        meta:
+          masking_policy: analyst_people_sensitive
+      - name: is_position_active
+        description: Whether the team member's current job position is active in the job_profiles table
+      - name: is_current
+        description: Whether the team member's job position is the most current as of the date the query is run
+      - name: valid_from
+        tests: 
+          - not_null
+      - name: valid_to
+        tests: 
+          - not_null
+  - name: prep_team_status
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+            combination_of_columns:
+              - dim_team_member_sk
+              - valid_from
+    columns:
+      - name: dim_team_member_sk
+        description: A unique ID for each team member.
+        tests:
+          - not_null
+      - name: dim_team_sk
+        description: A unique ID for each team.
+        tests:
+          - not_null
+      - name: employee_id
+        description: Unique ID of the team member.
+        tests:
+          - not_null
+      - name: team_id
+        description: Unique ID of the team.
+      - name: job_code
+        description: The code of the team member's job position.
+      - name: job_specialty_single
+        description: The team member's job specialty.
+      - name: job_specialty_multi
+        description: The team member's job specialty (multi-select).
+      - name: position
+        description: The team member's job profile name.
+      - name: job_family
+        description: The team member's job family.
+      - name: management_level
+        description: The team member's management level.
+      - name: job_grade
+        description: The team member's job grade.
+      - name: entity
+        description: The team member's entity.
+        meta:
+          masking_policy: analyst_people_sensitive
+      - name: is_position_active
+        description: Whether the team member's job position is active.
+      - name: employment_status
+        description: Employment Status (active, terminated). Other statuses will be added in the future (ie. Long term leave) 
+        tests:
+          - not_null
+      - name: termination_reason
+        description: Categorical variable that indicates the reason why a team member has been terminated
+        meta:
+          masking_policy: analyst_people_sensitive
+      - name: termination_type
+        description: Categorical variable that indicates whether the termination was voluntary or involuntary.
+        meta:
+          masking_policy: analyst_people_sensitive
+      - name: exit_impact
+        description: Whether the team member's departure has a significant negative impact on the company, its customers, its projects or the team.
+        meta:
+          masking_policy: analyst_people_sensitive
+      - name: is_current
+        description: Whether the team status is the most current as of the date the query is run.
+      - name: valid_from
+        tests: 
+          - not_null
+      - name: valid_to
+        tests: 
+          - not_null
+ 
+  - name: prep_namespace_order_trial
+    description: '{{ doc("prep_namespace_order_trial") }}'
+    columns:
+      - name: dim_namespace_order_trial_sk
+        description: '{{ doc("dim_namespace_order_trial_sk") }}'
+        tests:
+          - not_null
+          - unique
+      - name: dim_namespace_id
+        description: The unique ID of the namespace related to the trial.
+      - name: order_start_date
+        description: The date when the trial period of the order begins
+      - name: order_end_date
+        description: The date when the trial period of the order ends
+      - name: order_created_at
+      - name: order_updated_at
+      - name: glm_source
+      - name: glm_content
+      - name: trial_entity
+        description: Can contain values of company or individial
+      - name: trial_type
+        description: '{{ doc("trial_type") }}'
+      - name: trial_type_name
+        description: '{{ doc("trial_type_name") }}'
+      - name: record_source
+        decsription: Identifies the source of the record - values include trial_histories or orders
+      - name: created_by
+        description: '{{ doc("created_by") }}'
+      - name: updated_by
+        description: '{{ doc("updated_by") }}'
+      - name: model_created_date
+        description: '{{ doc("model_created_date") }}'
+      - name: model_updated_date
+        description: '{{ doc("model_updated_date") }}'
+
+
+  - name: prep_order
+    description: '{{ doc("prep_order") }}'
+    columns:
+      - name: dim_order_sk
+        description: The unique surrogate key of an Order that is created by hashing the `Order_id` column from Customers_db.
+        tests:
+          - not_null
+          - unique
+      - name: internal_order_id
+        description: The unique Id of the Order from Customers db. Can only be used to join back to CDot Orders
+        tests:
+          - not_null
+          - unique
+      - name: user_id
+        description: The Id of the Customer that owns this Order.
+      - name: dim_billing_account_id
+        description: The Zuora Billing Account Id associated with the Order
+      - name: zuora_account_id
+        description: The Zuora account ID of the customer.
+      - name: product_rate_plan_id  
+        description: The Zuora Product Rate Plan Id of the product that was purchased
+      - name: dim_subscription_id
+        description: The unique Id of a Subscription from Zuora
+      - name: subscription_name
+        description: The unique name of a Subscription from Zuora. Can be used to join back to Zuora data.
+      - name: subscription_name_slugify
+        description: The unique identifier of the subscription
+      - name: dim_namespace_id
+        description: Id of the group on GitLab.com that is linked to this subscription.
+      - name: namespace_name
+        description: Name of the group on GitLab.com that is linked to this subscription.
+      - name: order_start_date
+        description: The date when the order begins
+      - name: order_end_date
+        description: The date when the order ends
+      - name: order_quantity
+        description: Number of purchased units
+      - name: order_created_at
+        description: The date when the order was created 
+      - name: order_updated_at
+        description: The date when the order was last updated
+      - name: amendment_type
+        description: Last type of Zuora amendment applied to the subscription. For example - UpdateProduct.
+      - name: is_order_trial
+        description: Indicates if the Order is a trial plan.
+      - name: last_extra_ci_minutes_sync_at
+        description: Last time when CI minutes were synced to GitLab.com.
+      - name: increased_billing_rate_notified_at
+        description: Date Time of the notification sent to the customer before processing an extra charge by overuse.
+      - name: order_source
+        description: Source where the order originates
+      - name: task_instance
+
+
+  - name: prep_cloud_activation
+    description: '{{ doc("prep_cloud_activation") }}'  
+    columns:
+      - name: dim_cloud_activation_sk
+        description: '{{ doc("dim_cloud_activation_sk") }}'
+        tests:
+          - not_null
+          - unique
+      - name: dim_cloud_activation_id
+        description: '{{ doc("dim_plan_id") }}'
+        tests:
+          - not_null
+          - unique
+      - name: internal_customer_id
+        description: Membership Customer ID. This is internal to a Customer in CDot and can only be joined back to Customers db data.
+        tests:
+          - not_null
+      - name: dim_billing_account_id
+        description: Membership Account ID. Join key between Customers and billings_accounts.
+      - name: subscription_name
+        description: The Subscription name associated with a Subscription
+      - name: is_super_sonics_aware_subscription
+        description: Indiactor field to identify Super Sonics subscriptions. 
+      - name: seat_utilization_reminder_sent_at
+        description: Timestamp when reminder email to submit seat utilization data was sent.
+      - name: cloud_activation_created_at
+        description: The date when the cloud licensing was activated/created on customer's instance
+        tests:
+          - not_null
+      - name: cloud_activation_updated_at
+        description: The date when the cloud activation/licensing was updated on customer's instance
+        tests:
+          - not_null
+
+  - name: prep_license_subscription
+    description: '{{ doc("prep_license_subscription") }}'
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          combination_of_columns:
+            - reporting_month
+            - license_id
+            - dim_subscription_id
+    columns:
+      - name: reporting_month
+        description: '{{ doc("reporting_month") }}'
+        tests:
+          - not_null
+      - name: license_id
+        description: '{{ doc("license_id") }}'
+        tests:
+          - not_null
+      - name: license_md5
+        description: '{{ doc("license_md5") }}'
+      - name: license_sha256
+        description: '{{ doc("license_sha256") }}'
+      - name: license_company_name
+        description: '{{ doc("license_company_name") }}'
+      - name: license_expire_date
+        description: '{{ doc("license_expire_date") }}'
+      - name: subscription_name
+        description: '{{ doc("subscription_name") }}'
+      - name: original_subscription_name_slugify
+        description: '{{ doc("original_subscription_name_slugify") }}'
+      - name: dim_subscription_id
+        description: '{{ doc("dim_subscription_id") }}'
+      - name: subscription_start_month
+        description: '{{ doc("subscription_start_month") }}'
+      - name: subscription_end_month
+        description: '{{ doc("subscription_end_month") }}'
+      - name: dim_subscription_id_original
+        description: '{{ doc("dim_subscription_id_original") }}'
+      - name: dim_billing_account_id
+        description: '{{ doc("dim_billing_account_id") }}'
+      - name: crm_account_name
+        description: '{{ doc("crm_account_name") }}'
+      - name: dim_parent_crm_account_id
+        description: '{{ doc("dim_parent_crm_account_id") }}'
+      - name: parent_crm_account_name
+        description: '{{ doc("parent_crm_account_name") }}'
+      - name: parent_crm_account_upa_country
+        description: '{{ doc("parent_crm_account_upa_country") }}'
+      - name: parent_crm_account_sales_segment
+        description: '{{ doc("parent_crm_account_sales_segment") }}'
+      - name: parent_crm_account_industry
+        description: '{{ doc("parent_crm_account_industry") }}'
+      - name: parent_crm_account_territory
+        description: '{{ doc("parent_crm_account_territory") }}'
+      - name: technical_account_manager
+        description: '{{ doc("technical_account_manager") }}'
+      - name: is_paid_subscription
+        description: '{{ doc("is_paid_subscription") }}'
+      - name: is_program_subscription
+        description: '{{ doc("is_program_subscription") }}'
+      - name: product_category_array
+        description: '{{ doc("product_category_array") }}'
+      - name: product_rate_plan_name_array
+        description: '{{ doc("product_rate_plan_name_array") }}'
+      - name: latest_subscription_id
+        description: '{{ doc("latest_subscription_id") }}'
+  
+  - name: prep_marketo_person
+    description: The core prep table of Marketo's person data.  
+    columns:
+      - name: dim_marketo_person_id
+        description: The Unique person ID from Marketo
+        tests:
+          - not_null
+          - unique
+      - name: dim_crm_person_id
+        description: The Unique person ID from Salesforce
+      - name: email_hash
+        description: The hashed version of the person's email address
+      - name: acquisition_program_id
+        description: Unique ID for the program the Marketo Person is assigned too.
+      - name: gitlabdotcom_user_id
+        description: The unique User ID from GitLab.
+      - name: dim_crm_account_id
+        description: The Unique account ID from Salesforce.
+      - name: marketo_email_bounced_date
+        description: The Date that the Marketo person record bounced.
+      - name: marketo_acquisition_date
+        description: The Date the Marketo person was first attributable to a specific program.
+      - name: marketo_opt_in_date
+        description: The Date that the Marketo person record opted in to communication.
+      - name: marketo_created_date_time
+        description: The Date that the Marketo person record was created in Marketo.
+      - name: sign_up_date
+        description: The Date that the Marketo person signed up to a specific list. MOPs to review description.
+      - name: opt_out_date
+        description: The Date that the Marketo person record opted out of communication.
+      - name: email_suspended_date
+        description: The Date that the Marketo person record had their emailing suspended.
+      - name: initial_start_date
+        description: The Date of initial start. MOPs to review description.
+      - name: customer_health_score_date
+        description: The Date that the Marketo person record had their customer health score applied.
+      - name: double_opt_in_date
+        description: The Date that the Marketo person record double-opted in to communication.
+      - name: path_factory_engagement_time
+        description: The length of time the person record engaged with Pathfactory content.
+      - name: title
+        description: The Marketo person's title.
+      - name: country
+        description: The Marketo person's country.
+      - name: sfdc_record_type
+        description: The Marketo person's salesforce record type.
+      - name: original_source_type
+        description: The Marketo person's original source type in Marketo.
+      - name: registration_source_type
+        description: The Marketo person's registration source type. 
+      - name: tech_stack
+        description: The Marketo person's tech stack.
+      - name: original_source_info
+        description: The Marketo person's original source information. 
+      - name: marketo_person_type
+        description: The Marketo person's record type in Marketo.
+      - name: email_bounced_reason
+        description: The reason for the Marketo person's bounced email.
+      - name: compliance_segment_value
+        description: Source of truth field for opt in logic. Values of 'do not email' and 'default' indicate Opt Out.
+      - name: marketo_person_region
+        description: The Marketo person's region.
+      - name: marketo_account_region
+        description: The Marketo person's account's region from Salesforce.
+      - name: preferred_language
+        description: The Marketo person's preferred language.
+      - name: marketo_account_tier
+        description: The Marketo person's Account tier.
+      - name: marketo_account_tier_notes
+        description: The Marketo person's Account tier notes.
+      - name: marketo_abm_tier
+        description: The Marketo person's ABM tier.
+      - name: account_demographics_upa_country
+        description: The Marketo person's account's UPA country.
+      - name: account_demographics_upa_country_name
+        description: The Marketo person's account's UPA country name.
+      - name: product_category
+        description: Aggregated label for product purchased. e.g. 1-Ultimate, 2-Premium. 
+      - name: marketo_priority
+        description: Numeric label setting the Marketo person's score in relative context of the rest of our database. Shows as Stars in Marketo UI. 
+      - name: marketo_urgency
+        description: A measure of recency to add context to the Marketo person's behaviour score.
+      - name: marketo_relative_urgency
+        description: A 1-3 label to contrast the urgency score to others. Shows as Flames in Marketo UI.
+      - name: marketo_lead_source
+        description: The Marketo person's lead source.
+      - name: marketo_lead_status
+        description: The Marketo person's lead status.
+      - name: marketo_newsletter_segment
+        description: The Marketo person's newsletter segment in Marketo.
+      - name: email_suspended_cause
+        description: The Marketo person's reason for having their email suspended.
+      - name: products_purchased
+        description: The Marketo person's list of purchased products.
+      - name: marketo_rating_scale
+        description: The Marketo person's rating scale in Marketo.
+      - name: is_email_bounced
+        description: Boolean Flag - Whether or not the person's email has bounced.
+      - name: is_unsubscribed
+        description: Boolean Flag - Whether or not the person is unsubscribed.
+      - name: is_opt_in
+        description: Boolean Flag - Whether or not the person is opted in.
+      - name: is_pql_marketo
+        description: Boolean Flag - Whether or not the person is a PQL in Marketo.
+      - name: is_paid_tier_marketo
+        description: Boolean Flag - Whether or not the person is on a paid tier.
+      - name: is_ptpt_contact_marketo
+        description: Boolean Flag - Whether or not the person is the PTPT contact.
+      - name: is_ptp_contact_marketo
+        description: Boolean Flag - Whether or not the person is the PTP contact.
+      - name: is_impacted_by_user_limit_marketo
+        description: Boolean Flag - Whether or not the person is impacted by user limits in Marketo.
+      - name: is_currently_in_trial_marketo
+        description: Boolean Flag - Whether or not the person is currently in a trial in Marketo.
+      - name: is_active_user
+        description: Boolean Flag - Whether or not the person is an active user.
+      - name: is_subscribed_webcast
+        description: Boolean Flag - Whether or not the person is subscribed to webcasts.
+      - name: is_subscribed_live_events
+        description: Boolean Flag - Whether or not the person is subscribed to live events.
+      - name: is_gdpr_compliant
+        description: Boolean Flag - Whether or not the person is GDPR compliant.
+      - name: is_email_suspended
+        description: Boolean Flag - Whether or not the person has a suspended email.
+      - name: has_requested_migration_services
+        description: Boolean Flag - Whether or not the person has requested migration services.
+      - name: has_requested_implementation_services
+        description: Boolean Flag - Whether or not the person has requested implementation services.
+      - name: has_requested_specialized_trainings
+        description: Boolean Flag - Whether or not the person has requested specialized training.
+      - name: is_core_user
+        description: Boolean Flag - Whether or not the person is a core user.
+      - name: is_active_plan
+        description: Boolean Flag - Whether or not the person is on an active plan.
+      - name: is_secure_active
+        description: Boolean Flag - Whether or not the person has secure active.
+      - name: is_marketing_suspended
+        description: Boolean Flag - Whether or not the person is suspended from marketing activities.
+      - name: is_email_opt_out
+        description: Boolean Flag - Whether or not the person is opted out of email.
+      - name: is_events_segment
+        description: Boolean Flag - Whether or not the person is in the events segment.
+      - name: is_black_listed
+        description: Boolean Flag - Whether or not the person is black listed.
+      - name: is_do_not_route
+        description: Boolean Flag - Whether or not the person should not be routed.
+      - name: is_double_opt_in
+        description: Boolean Flag - Whether or not the person is double opted in.
+      - name: has_requested_education
+        description: Boolean Flag - Whether or not the person has requested educational material.
+      - name: is_30_day_opt_out
+        description: Boolean Flag - Whether or not the person.
+      - name: is_marketing_comm_opt_out
+        description: Boolean Flag - Whether or not the person is opted out from marketing communications.
+      - name: is_using_ce
+        description: Boolean Flag - Whether or not the person is using CE.
+      - name: is_do_not_contact
+        description: Boolean Flag - Whether or not the person should not be contacted.
+      - name: is_invalid_email
+        description: Boolean Flag - Whether or not the person's email is invalid.
+      - name: is_high_priority
+        description: Boolean Flag - Whether or not the person is high prioirty.
+      - name: is_unsubscribe_all_marketing
+        description: Boolean Flag - Whether or not the person is unsubscribed from all marketing communication.
+      - name: marketo_relative_person_score
+        description: The Marketo person's relative person score.
+      - name: marketo_demographic_score
+        description: The Marketo person's demographic score.
+      - name: path_factory_engagement_score
+        description: The Marketo person's Behavior score.
+      - name: license_user_count
+        description: The Marketo person's licensed user count.
+      - name: marketo_health_score
+        description: The Marketo person's health score.
+      - name: engagio_pipeline_predict_score
+        description: The Marketo person's Engagio predict score.
+      - name: infer_score
+        description: The Marketo person's Infer score.
+      - name: data_quality_score
+        description: The Marketo person's data quality score.
+      - name: marketo_lead_score_2
+        description: The Marketo person's Lead Score.
+
+  - name: prep_snowplow_sessions_all
+    description: '{{ doc("prep_snowplow_sessions_all") }}'

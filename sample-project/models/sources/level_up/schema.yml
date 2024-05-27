@@ -1,0 +1,151 @@
+version: 2
+models:
+  - name: level_up_course_actions 
+    description: Returns information when a user enrolls, changes status, earns a certificate, or has their access revoked in a course.
+    columns:
+      - name: id
+        tests:
+          - not_null
+      - name: company_id
+      - name: course_sku
+      - name: course_title
+      - name: company_id
+      - name: notifiable_id
+      - name: course_action
+        tests:
+          - not_null
+      - name: event_timestamp
+        tests:
+          - not_null
+      - name: transaction_type
+      - name: username
+      - name: user_id
+      - name: user_state
+      - name: user_country
+      - name: user_client
+      - name: external_customer_id
+      - name: ref1_user_type
+      - name: ref2_user_job
+      - name: ref4_user_company
+      - name: ref6_user_role_type
+      - name: ref7_user_continent
+      - name: ref8_user_country
+      - name: ref9_user_sub_dept
+      - name: ref10_user_dept
+      - name: sf_account_id
+      - name: sf_contact_id
+      - name: uploaded_at
+  - name: level_up_course_completions
+    description: Returns information when a course is completed by a user
+    columns:
+      - name: id
+        tests:
+          - not_null
+          - unique
+      - name: company_id
+      - name: event
+      - name: license
+      - name: notifiable_id
+      - name: course_action
+      - name: event_timestamp
+        tests:
+          - not_null
+      - name: title
+      - name: transaction_type
+      - name: updated_at
+      - name: username
+      - name: user_id
+      - name: user_state
+      - name: user_country
+      - name: user_client
+      - name: ref1_user_type
+      - name: ref2_user_job
+      - name: ref4_user_company
+      - name: ref6_user_role_type
+      - name: ref7_user_continent
+      - name: ref8_user_country
+      - name: ref9_user_sub_dept
+      - name: ref10_user_dept
+      - name: sf_account_id
+      - name: sf_contact_id
+      - name: uploaded_at
+        tests:
+          - not_null
+  - name: level_up_course_views
+    description: Returns information about pages within courses that are viewed as a learner
+    columns:
+      - name: company_id
+      - name: course_id
+      - name: course_sku
+      - name: course_title
+      - name: lesson_id
+      - name: lesson_slug
+      - name: lesson_title
+      - name: section_id
+      - name: section_slug
+      - name: section_title
+      - name: event_timestamp
+        tests:
+          - not_null
+      - name: topic_id
+      - name: topic_title
+      - name: username
+      - name: user_id
+      - name: user_state
+      - name: user_country
+      - name: user_type
+      - name: ref1_user_type
+      - name: ref2_user_job
+      - name: ref4_user_company
+      - name: ref6_user_role_type
+      - name: ref7_user_continent
+      - name: ref8_user_country
+      - name: ref9_user_sub_dept
+      - name: ref10_user_dept
+      - name: sf_account_id
+      - name: sf_contact_id
+      - name: uploaded_at
+        tests:
+          - not_null
+  - name: level_up_logins
+    description: Returns information about logins. It includes browser & IP Address information
+    columns:
+      - name: browser_info
+      - name: company_host
+      - name: company_id
+      - name: company_subdomain
+      - name: event
+      - name: event_timestamp
+        tests:
+          - not_null
+      - name: user_agent
+      - name: username
+      - name: user_id
+      - name: ref1_user_type
+      - name: ref2_user_job
+      - name: sf_account_id
+      - name: sf_contact_id
+      - name: uploaded_at
+        tests:
+          - not_null
+  - name: level_up_visits
+    description: Returns information about logged-in users visiting the platform
+    columns:
+      - name: company_host
+      - name: company_id
+      - name: company_subdomain
+      - name: event
+      - name: event_timestamp
+        tests:
+          - not_null
+      - name: username
+      - name: user_id
+      - name: user_client_id
+      - name: user_department_id
+      - name: ref1_user_type
+      - name: ref2_user_job
+      - name: sf_account_id
+      - name: sf_contact_id
+      - name: uploaded_at
+        tests:
+          - not_null
