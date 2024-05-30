@@ -30,7 +30,7 @@ def rule_runner() -> RuleRunner:
 					PutativeTarget.for_target_type(
 						DbtProjectTargetGenerator,
 						path="b",
-						name="project",
+						name=None,
 						triggering_sources=["b/dbt_project.yml"],
 					)
 				]

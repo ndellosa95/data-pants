@@ -26,7 +26,7 @@ async def find_unowned_dbt_projects(
 		PutativeTarget.for_target_type(
 			DbtProjectTargetGenerator,
 			path=os.path.dirname(path),
-			name="project",
+			name=None,
 			triggering_sources=[path],
 		)
 		for path in all_dbt_project_paths.files
