@@ -1,8 +1,10 @@
+from __future__ import annotations
+
 import itertools
 import logging
 import os
 from dataclasses import dataclass
-from typing import Any, Dict, Mapping
+from typing import Any, Dict
 
 from pants.core.target_types import FileTarget
 from pants.engine.fs import PathGlobs, Paths
@@ -11,11 +13,10 @@ from pants.engine.target import (
 	Dependencies,
 	GeneratedTargets,
 	GenerateTargetsRequest,
+	InvalidFieldException,
 	OverridesField,
-	SourcesField,
 	Target,
 	Targets,
-	InvalidFieldException
 )
 from pants.engine.unions import UnionRule
 from pants.util.strutil import comma_separated_list
@@ -23,21 +24,27 @@ from pants.util.strutil import comma_separated_list
 from ..common_rules import DbtProjectSpec
 from .config import DbtConfig, DbtConfigSourceField
 from .doc import DbtDoc, DbtDocSourceField
+from .macro import DbtMacro, DbtMacroSourceField
 from .model import DbtModel, DbtModelSourceField
 from .project import DbtProjectTargetGenerator, ProjectFileField
+from .test import DbtTest, DbtTestSourceField
 from .third_party_package import DbtThirdPartyPackage, DbtThirdPartyPackageSpec
 
 LOGGER = logging.getLogger(__file__)
 
-EXPECTED_EXTENSIONS_MAPPING = {
+EXPECTED_EXTENSIONS_MAPPING: dict[type[Target], tuple[str, ...]] = {
 	DbtModel: DbtModelSourceField.expected_file_extensions,
 	DbtConfig: DbtConfigSourceField.expected_file_extensions,
 	DbtDoc: DbtDocSourceField.expected_file_extensions,
+	DbtMacro: DbtMacroSourceField.expected_file_extensions,
+	DbtTest: DbtTestSourceField.expected_file_extensions,
 	FileTarget: (".csv",),
 }
 
-SPEC_KEY_TARGET_MAPPING = {
+SPEC_KEY_TARGET_MAPPING: dict[type[Target], str] = {
 	DbtModel: "model-paths",
+	DbtMacro: "macro-paths",
+	DbtTest: "test-paths",
 	FileTarget: "seed-paths",
 }
 
@@ -52,7 +59,9 @@ class ConstructTargetsInPathRequest:
 def _validate_overrides(overrides: OverridesField, filename: str) -> Dict[str, Any]:
 	if overrides.value and (overrides_for_file := overrides.value.get(filename)):
 		if "sources" in overrides_for_file:
-			raise InvalidFieldException("Cannot override field `sources`", description_of_origin=f"Target at address {overrides.address}")
+			raise InvalidFieldException(
+				"Cannot override field `sources`", description_of_origin=f"Target at address {overrides.address}"
+			)
 		return overrides_for_file
 	return {}
 
@@ -69,7 +78,9 @@ async def construct_targets_in_path(request: ConstructTargetsInPathRequest) -> T
 		Get(
 			Paths,
 			PathGlobs(
-				os.path.join(os.path.dirname(request.target_generator[ProjectFileField].file_path), dirpath, "**", f"*{ext}")
+				os.path.join(
+					os.path.dirname(request.target_generator[ProjectFileField].file_path), dirpath, "**", f"*{ext}"
+				)
 				for dirpath in request.dirpaths
 				for ext in EXPECTED_EXTENSIONS_MAPPING[target_type]
 			),

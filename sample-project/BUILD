@@ -8,4 +8,5 @@ poetry_requirements(
 
 dbt_project(
     name="root",
+    profiles_file="profiles/profiles.yml",
 )
