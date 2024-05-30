@@ -1,0 +1,4 @@
+dbt-core~=1.7.0
+dbt-duckdb
+sqlfluff
+sqlfluff-templater-dbt

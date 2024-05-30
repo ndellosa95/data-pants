@@ -1,5 +1,0 @@
-version: 2
-
-models:
-  - name: fct_usage_ping_metrics_status
-    description: '{{ doc("fct_usage_ping_metrics_status") }}'

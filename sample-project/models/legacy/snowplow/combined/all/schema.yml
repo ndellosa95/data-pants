@@ -1,5 +1,0 @@
-version: 2
-
-models:
-    -   name: snowplow_structured_events_all
-        description: This is is a view over all snowplow_YYYY_MM schemas for structured events.
