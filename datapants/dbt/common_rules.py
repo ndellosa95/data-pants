@@ -8,11 +8,12 @@ from typing import Any, Iterable
 import yaml
 from packaging.specifiers import Specifier, SpecifierSet
 from packaging.version import Version
-from pants.engine.fs import Digest, DigestContents, GlobMatchErrorBehavior, PathGlobs, Snapshot
+from pants.engine.fs import Digest, DigestContents, Snapshot
 from pants.engine.rules import Get, collect_rules, rule
+from pants.engine.target import HydratedSources, HydrateSourcesRequest
 from pants.util.frozendict import FrozenDict
 
-from .target_types import DbtProjectTargetGenerator
+from .target_types.project import DbtProjectTargetGenerator, PackagesFileField, ProjectFileField
 
 
 @dataclass(frozen=True)
@@ -49,6 +50,14 @@ class SpecifierRange:
 	min_inclusive: bool = False
 	max_version: str | None = None
 	max_inclusive: bool = False
+
+	def __str__(self) -> str:
+		parts = []
+		if self.min_version:
+			parts.append((">=" if self.min_inclusive else ">") + self.max_version)
+		if self.max_version:
+			parts.append(("<=" if self.max_inclusive else "<") + self.max_version)
+		return ",".join(parts)
 
 	@staticmethod
 	def _convert_spec_version(spec: Specifier) -> Version:
@@ -95,42 +104,41 @@ class SpecifierRange:
 
 
 MIN_DEPENDENCIES_YML_VERSION = SpecifierRange(min_version="1.6", min_inclusive=True)
+MIN_LOCKFILE_YML_VERSION = SpecifierRange(min_version="1.7", min_inclusive=True)
 
 
 @rule
 async def load_project_spec_for_target_generator(target_generator: DbtProjectTargetGenerator) -> DbtProjectSpec:
 	"""Loads the contents of the `dbt_project.yml` for a `dbt_project` target."""
-	dbt_project_yml_digest = await Get(
-		Digest,
-		PathGlobs(
-			[os.path.join(target_generator.address.spec_path, "dbt_project.yml")],
-			glob_match_error_behavior=GlobMatchErrorBehavior.error,
-		),
-	)
-	dbt_project_yml_contents = await Get(DigestContents, Digest, dbt_project_yml_digest)
-	loaded_contents = _safe_load_frozendict(dbt_project_yml_contents[0].content)
-	requires_dbt_version = SpecifierSet(
-		loaded_contents["requires-dbt-version"]
-		if isinstance(loaded_contents["requires-dbt-version"], str)
-		else ",".join(loaded_contents["requires-dbt-version"])
-	)
-	valid_package_files = ["packages.yml"]
-	if MIN_DEPENDENCIES_YML_VERSION.is_subset(requires_dbt_version):
-		valid_package_files.append("dependencies.yml")
-	packages_snapshot = await Get(
-		Snapshot,
-		PathGlobs(
-			os.path.join(target_generator.address.spec_path, package_file) for package_file in valid_package_files
-		),
-	)
-	if len(packages_snapshot.files) > 1:
+	dbt_project_yml_sources = await Get(HydratedSources, HydrateSourcesRequest(target_generator[ProjectFileField]))
+	if not dbt_project_yml_sources.snapshot.files:
 		raise InvalidDbtProject(
-			"Multiple packages files found - please only pass one of `packages.yml` or `dependencies.yml`.",
+			f"No `dbt_project.yml` found for `{target_generator.alias}` target at address {target_generator.address}"
+		)
+	dbt_project_yml_contents = await Get(DigestContents, Digest, dbt_project_yml_sources.snapshot.digest)
+	loaded_contents = _safe_load_frozendict(dbt_project_yml_contents[0].content)
+	if (
+		package_file_basename := os.path.basename(target_generator[PackagesFileField].value)
+	) != "packages.yml" and not (
+		version_range := MIN_LOCKFILE_YML_VERSION
+		if package_file_basename == "package-lock.yml"
+		else MIN_DEPENDENCIES_YML_VERSION
+	).is_subset(
+		SpecifierSet(
+			loaded_contents["requires-dbt-version"]
+			if isinstance(loaded_contents["requires-dbt-version"], str)
+			else ",".join(loaded_contents["requires-dbt-version"])
+		)
+	):
+		raise InvalidDbtProject(
+			f"{package_file_basename} is only valid for dbt versions {version_range}",
 			project_name=loaded_contents.get("name"),
 		)
+
 	packages = None
-	if packages_snapshot.files:
-		packages_contents = await Get(DigestContents, Digest, packages_snapshot.digest)
+	packages_sources = await Get(HydratedSources, HydrateSourcesRequest(target_generator[PackagesFileField]))
+	if packages_sources.snapshot.files:
+		packages_contents = await Get(DigestContents, Digest, packages_sources.snapshot.digest)
 		loaded_package_contents = _safe_load_frozendict(packages_contents[0].content)
 		try:
 			packages = loaded_package_contents["packages"]
@@ -138,7 +146,7 @@ async def load_project_spec_for_target_generator(target_generator: DbtProjectTar
 			raise InvalidDbtProject(
 				"Invalid packages file without `packages` header.", project_name=loaded_contents.get("name")
 			) from ke
-	return DbtProjectSpec(loaded_contents, dbt_project_yml_digest, packages)
+	return DbtProjectSpec(loaded_contents, dbt_project_yml_sources.snapshot.digest, packages)
 
 
 @dataclass(frozen=True)

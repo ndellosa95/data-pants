@@ -10,4 +10,3 @@ class DbtModel(Target):
 	alias = "dbt_model"
 	help = "A target representing a single dbt model."
 	core_fields = (*COMMON_TARGET_FIELDS, DbtModelSourceField, Dependencies)
-	expected_file_extensions = DbtModelSourceField.expected_file_extensions

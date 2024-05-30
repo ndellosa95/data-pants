@@ -1,4 +1,5 @@
 import itertools
+import logging
 import os
 from dataclasses import dataclass
 from typing import Any, Dict, Mapping
@@ -14,15 +15,26 @@ from pants.engine.target import (
 	SourcesField,
 	Target,
 	Targets,
+	InvalidFieldException
 )
 from pants.engine.unions import UnionRule
+from pants.util.strutil import comma_separated_list
 
 from ..common_rules import DbtProjectSpec
-from .config import DbtConfig
-from .doc import DbtDoc
-from .model import DbtModel
-from .project import DbtProjectTargetGenerator
-from .third_party_package import DbtThirdPartyPackage
+from .config import DbtConfig, DbtConfigSourceField
+from .doc import DbtDoc, DbtDocSourceField
+from .model import DbtModel, DbtModelSourceField
+from .project import DbtProjectTargetGenerator, ProjectFileField
+from .third_party_package import DbtThirdPartyPackage, DbtThirdPartyPackageSpec
+
+LOGGER = logging.getLogger(__file__)
+
+EXPECTED_EXTENSIONS_MAPPING = {
+	DbtModel: DbtModelSourceField.expected_file_extensions,
+	DbtConfig: DbtConfigSourceField.expected_file_extensions,
+	DbtDoc: DbtDocSourceField.expected_file_extensions,
+	FileTarget: (".csv",),
+}
 
 SPEC_KEY_TARGET_MAPPING = {
 	DbtModel: "model-paths",
@@ -37,35 +49,39 @@ class ConstructTargetsInPathRequest:
 	target_types: tuple[type[Target]]
 
 
-def _filter_overrides(overrides: Mapping[str, Any], target_type: type[Target]) -> Dict[str, Any]:
-	return {
-		field.alias: overrides[field.alias]
-		for field in target_type.core_fields
-		if (not isinstance(field, SourcesField)) and field.alias in overrides
-	}
+def _validate_overrides(overrides: OverridesField, filename: str) -> Dict[str, Any]:
+	if overrides.value and (overrides_for_file := overrides.value.get(filename)):
+		if "sources" in overrides_for_file:
+			raise InvalidFieldException("Cannot override field `sources`", description_of_origin=f"Target at address {overrides.address}")
+		return overrides_for_file
+	return {}
 
 
 @rule
 async def construct_targets_in_path(request: ConstructTargetsInPathRequest) -> Targets:
 	"""Generates the targets for each specified target type at the subdirectory
 	supplied by dirpaths."""
+	LOGGER.debug(
+		f"Checking path(s) {comma_separated_list(request.dirpaths)} for "
+		f"{comma_separated_list(tt.alias for tt in request.target_types)} targets... "
+	)
 	paths_by_target_type = await MultiGet(
 		Get(
 			Paths,
 			PathGlobs(
-				os.path.join(request.target_generator.address.spec_path, dirpath, "**", f"*.{ext}")
+				os.path.join(os.path.dirname(request.target_generator[ProjectFileField].file_path), dirpath, "**", f"*{ext}")
 				for dirpath in request.dirpaths
-				for ext in target_type.expected_file_extensions
+				for ext in EXPECTED_EXTENSIONS_MAPPING[target_type]
 			),
 		)
 		for target_type in request.target_types
 	)
 	return Targets(
-		Target(
+		target_type(
 			{
 				"source": os.path.basename(fn),
 				Dependencies.alias: request.target_generator[Dependencies].value,
-				**_filter_overrides(request.target_generator[OverridesField].value[fn], target_type),
+				**_validate_overrides(request.target_generator[OverridesField], fn),
 			},
 			request.target_generator.address.create_generated(
 				os.path.relpath(fn, request.target_generator.address.spec_path)
@@ -101,7 +117,7 @@ async def generate_dbt_targets(request: GenerateDbtTargetsRequest) -> GeneratedT
 			),
 			*(
 				DbtThirdPartyPackage(
-					{"spec": package_spec},
+					{DbtThirdPartyPackageSpec.alias: package_spec},
 					request.template_address.create_generated(
 						DbtThirdPartyPackage.construct_name_from_spec(package_spec)
 					),

@@ -1,8 +1,14 @@
+from __future__ import annotations
+
+import os
+
 from pants.backend.python.target_types import PythonResolveField
 from pants.core.util_rules.environments import EnvironmentField
+from pants.engine.addresses import Address
 from pants.engine.target import (
 	COMMON_TARGET_FIELDS,
 	Dependencies,
+	InvalidFieldException,
 	OverridesField,
 	SingleSourceField,
 	StringSequenceField,
@@ -12,10 +18,40 @@ from pants.engine.target import (
 from pants.util.strutil import softwrap
 
 
-class ProfilesDirectoryField(SingleSourceField):
-	alias = "profiles_dir"
-	help = "The path to the directory where the `profiles.yml` for this project is located."
-	default = "."
+class HardcodedSingleSourceField(SingleSourceField):
+	required = False
+
+	@classmethod
+	def compute_value(cls, raw_value: str | None, address: Address) -> str:
+		result = super().compute_value(raw_value, address)
+		if result is None or os.path.basename(result) not in (valid_choices := cls.valid_choices or [cls.default]):
+			valid_choices = [repr(vc) for vc in valid_choices]
+			equal_str = (
+				valid_choices[0]
+				if len(valid_choices) == 1
+				else f"one of {', '.join(valid_choices[:-1])} or {valid_choices[-1]}"
+			)
+			raise InvalidFieldException(f"Field `{cls.alias}` at address {address} must equal {equal_str}")
+		return result
+
+
+class ProjectFileField(HardcodedSingleSourceField):
+	alias = "project_file"
+	help = "The path to the `dbt_project.yml` file associated with this project."
+	default = "dbt_project.yml"
+
+
+class ProfilesFileField(HardcodedSingleSourceField):
+	alias = "profiles_file"
+	help = "The path to the `profiles.yml` associated with this project."
+	default = "profiles.yml"
+
+
+class PackagesFileField(HardcodedSingleSourceField):
+	alias = "packages_file"
+	help = "The path to the packages file for loading third-party packages for this project."
+	valid_choices = ("packages.yml", "dependencies.yml", "package-lock.yml")
+	default = "packages.yml"
 
 
 class RequiredAdaptersField(StringSequenceField):
@@ -35,9 +71,11 @@ class DbtProjectTargetGenerator(TargetGenerator):
 		Dependencies,
 		OverridesField,
 		EnvironmentField,
+		ProjectFileField,
+		ProfilesFileField,
+		PackagesFileField,
 		PythonResolveField,
 		RequiredAdaptersField,
-		ProfilesDirectoryField,
 	)
 
 	copied_fields = (
@@ -45,6 +83,6 @@ class DbtProjectTargetGenerator(TargetGenerator):
 		PythonResolveField,
 		EnvironmentField,
 		RequiredAdaptersField,
-		ProfilesDirectoryField,
+		ProfilesFileField,
 	)
 	moved_fields = (Dependencies,)
