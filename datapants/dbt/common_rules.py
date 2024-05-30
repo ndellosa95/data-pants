@@ -6,7 +6,7 @@ from dataclasses import dataclass
 from typing import Any, Iterable
 
 import yaml
-from packaging.specifiers import SpecifierSet
+from packaging.specifiers import Specifier, SpecifierSet
 from packaging.version import Version
 from pants.engine.fs import Digest, DigestContents, GlobMatchErrorBehavior, PathGlobs, Snapshot
 from pants.engine.rules import Get, collect_rules, rule
@@ -50,38 +50,45 @@ class SpecifierRange:
 	max_version: str | None = None
 	max_inclusive: bool = False
 
-	def test_mins(self, versions: Iterable[str]) -> bool:
-		print("Testing mins:", versions)
-		base_version = Version(self.min_version)
-		func = base_version.__le__ if self.min_inclusive else base_version.__lt__
-		result = all(func(Version(v)) for v in versions)
-		print("Result:", result)
-		return result
+	@staticmethod
+	def _convert_spec_version(spec: Specifier) -> Version:
+		return Version(spec.version.replace("*", "0"))
 
-	def test_maxs(self, versions: Iterable[str]) -> bool:
-		print("Testing maxs:", versions)
+	def test_mins(self, specs: Iterable[Specifier]) -> bool:
+		base_version = Version(self.min_version)
+		return all(
+			(base_version.__le__ if self.min_inclusive or spec.operator == ">" else base_version.__lt__)(
+				self._convert_spec_version(spec)
+			)
+			for spec in specs
+		)
+
+	def test_maxs(self, specs: Iterable[Specifier]) -> bool:
+		def _fix_compatible(s: Specifier) -> Version:
+			v = self._convert_spec_version(s)
+			return Version(".".join(map(str, [*v.release[:-2], v.release[-2] + 1]))) if s.operator == "~=" else v
+
 		base_version = Version(self.max_version)
-		func = base_version.__ge__ if self.max_inclusive else base_version.__gt__
-		result = all(func(Version(v)) for v in versions)
-		print("Result:", result)
-		return result
+		return all(
+			(base_version.__ge__ if self.max_inclusive or spec.operator == "<" else base_version.__gt__)(
+				_fix_compatible(spec)
+			)
+			for spec in specs
+		)
 
 	def is_subset(self, specs: SpecifierSet) -> bool:
 		"""Tests whether the SpecifierSet `specs` is a subset of this specifier
 		range."""
-		print("Min version:", self.min_version, "Inclusive:", self.min_inclusive)
-		print("Max version:", self.max_version, "Inclusive:", self.max_inclusive)
-		print("Specs:", specs, "operators:", [spec.operator for spec in specs], "versions:", [spec.version for spec in specs])
 		return (
 			self.min_version is None
 			or (
-				bool(min_specs := [spec.version for spec in specs if spec.operator in {"==", ">", ">=", "~="}])
+				bool(min_specs := [spec for spec in specs if spec.operator in {"==", ">", ">=", "~="}])
 				and self.test_mins(min_specs)
 			)
 		) and (
 			self.max_version is None
-			or (  # TODO: ~= impl is not entirely correct but fine for now
-				bool(max_specs := [spec.version for spec in specs if spec.operator in {"==", "<", "<=", "~="}])
+			or (
+				bool(max_specs := [spec for spec in specs if spec.operator in {"==", "<", "<=", "~="}])
 				and self.test_maxs(max_specs)
 			)
 		)
