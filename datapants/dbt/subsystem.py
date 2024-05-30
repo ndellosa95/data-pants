@@ -14,7 +14,7 @@ class DbtSubsystem(Subsystem):
 	)
 
 	tailor_project_targets = BoolOption(
-        default=True,
-        help="If true, add `dbt_project` targets with the `tailor` goal.",
-        advanced=True,
-    )
+		default=True,
+		help="If true, add `dbt_project` targets with the `tailor` goal.",
+		advanced=True,
+	)

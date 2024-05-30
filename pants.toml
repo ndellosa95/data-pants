@@ -1,6 +1,5 @@
 [GLOBAL]
 pants_version = "2.20.1"
-# pythonpath = ["%(buildroot)s/"]
 backend_packages = [
     "pants.backend.python",
     "pants.backend.python.typecheck.mypy",
@@ -10,6 +9,7 @@ backend_packages = [
     "pants.backend.experimental.python.lint.ruff.format",
     "pants.backend.plugin_development",
 ]
+build_ignore = ["sample-project"]
 
 [python]
 enable_resolves = true

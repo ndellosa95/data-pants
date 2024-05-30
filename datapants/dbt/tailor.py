@@ -1,5 +1,5 @@
+import os
 from dataclasses import dataclass
-import logging
 
 from pants.core.goals.tailor import AllOwnedSources, PutativeTarget, PutativeTargets, PutativeTargetsRequest
 from pants.engine.fs import PathGlobs, Paths
@@ -24,9 +24,14 @@ async def find_unowned_dbt_projects(
 	all_dbt_project_paths = await Get(Paths, PathGlobs, request.path_globs("dbt_project.yml"))
 	return PutativeTargets(
 		PutativeTarget(
-			path, "project", DbtProjectTargetGenerator.alias, triggering_sources=[path], owned_sources=[path]
+			os.path.dirname(path),
+			"project",
+			DbtProjectTargetGenerator.alias,
+			triggering_sources=[path],
+			owned_sources=[path],
 		)
-		for path in all_dbt_project_paths.files if path not in owned_sources
+		for path in all_dbt_project_paths.files
+		if path not in owned_sources
 	)
 
 

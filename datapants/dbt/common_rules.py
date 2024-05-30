@@ -1,13 +1,16 @@
+from __future__ import annotations
+
 import collections.abc
 import os
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, Iterable
 
 import yaml
+from packaging.specifiers import SpecifierSet
+from packaging.version import Version
 from pants.engine.fs import Digest, DigestContents, GlobMatchErrorBehavior, PathGlobs, Snapshot
 from pants.engine.rules import Get, collect_rules, rule
 from pants.util.frozendict import FrozenDict
-from pants.version import Version
 
 from .target_types import DbtProjectTargetGenerator
 
@@ -40,6 +43,53 @@ def _safe_load_frozendict(contents: str | bytes) -> FrozenDict[str, Any]:
 	return FrozenDict.deep_freeze(yaml.safe_load(contents))
 
 
+@dataclass(frozen=True)
+class SpecifierRange:
+	min_version: str | None = None
+	min_inclusive: bool = False
+	max_version: str | None = None
+	max_inclusive: bool = False
+
+	def test_mins(self, versions: Iterable[str]) -> bool:
+		print("Testing mins:", versions)
+		base_version = Version(self.min_version)
+		func = base_version.__le__ if self.min_inclusive else base_version.__lt__
+		result = all(func(Version(v)) for v in versions)
+		print("Result:", result)
+		return result
+
+	def test_maxs(self, versions: Iterable[str]) -> bool:
+		print("Testing maxs:", versions)
+		base_version = Version(self.max_version)
+		func = base_version.__ge__ if self.max_inclusive else base_version.__gt__
+		result = all(func(Version(v)) for v in versions)
+		print("Result:", result)
+		return result
+
+	def is_subset(self, specs: SpecifierSet) -> bool:
+		"""Tests whether the SpecifierSet `specs` is a subset of this specifier
+		range."""
+		print("Min version:", self.min_version, "Inclusive:", self.min_inclusive)
+		print("Max version:", self.max_version, "Inclusive:", self.max_inclusive)
+		print("Specs:", specs, "operators:", [spec.operator for spec in specs], "versions:", [spec.version for spec in specs])
+		return (
+			self.min_version is None
+			or (
+				bool(min_specs := [spec.version for spec in specs if spec.operator in {"==", ">", ">=", "~="}])
+				and self.test_mins(min_specs)
+			)
+		) and (
+			self.max_version is None
+			or (  # TODO: ~= impl is not entirely correct but fine for now
+				bool(max_specs := [spec.version for spec in specs if spec.operator in {"==", "<", "<=", "~="}])
+				and self.test_maxs(max_specs)
+			)
+		)
+
+
+MIN_DEPENDENCIES_YML_VERSION = SpecifierRange(min_version="1.6", min_inclusive=True)
+
+
 @rule
 async def load_project_spec_for_target_generator(target_generator: DbtProjectTargetGenerator) -> DbtProjectSpec:
 	"""Loads the contents of the `dbt_project.yml` for a `dbt_project` target."""
@@ -52,8 +102,13 @@ async def load_project_spec_for_target_generator(target_generator: DbtProjectTar
 	)
 	dbt_project_yml_contents = await Get(DigestContents, Digest, dbt_project_yml_digest)
 	loaded_contents = _safe_load_frozendict(dbt_project_yml_contents[0].content)
+	requires_dbt_version = SpecifierSet(
+		loaded_contents["requires-dbt-version"]
+		if isinstance(loaded_contents["requires-dbt-version"], str)
+		else ",".join(loaded_contents["requires-dbt-version"])
+	)
 	valid_package_files = ["packages.yml"]
-	if Version(loaded_contents["version"]) >= "1.6":
+	if MIN_DEPENDENCIES_YML_VERSION.is_subset(requires_dbt_version):
 		valid_package_files.append("dependencies.yml")
 	packages_snapshot = await Get(
 		Snapshot,
