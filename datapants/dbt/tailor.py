@@ -23,12 +23,11 @@ async def find_unowned_dbt_projects(
 		return PutativeTargets()
 	all_dbt_project_paths = await Get(Paths, PathGlobs, request.path_globs("dbt_project.yml"))
 	return PutativeTargets(
-		PutativeTarget(
-			os.path.dirname(path),
-			"project",
-			DbtProjectTargetGenerator.alias,
+		PutativeTarget.for_target_type(
+			DbtProjectTargetGenerator,
+			path=os.path.dirname(path),
+			name="project",
 			triggering_sources=[path],
-			owned_sources=[path],
 		)
 		for path in all_dbt_project_paths.files
 		if path not in owned_sources
