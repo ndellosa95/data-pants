@@ -1,10 +1,11 @@
-from pants.engine.target import COMMON_TARGET_FIELDS, Dependencies, SingleSourceField, Target
+from pants.engine.target import COMMON_TARGET_FIELDS, Dependencies, Target
+
+from .base import DbtSourceField
 
 __test__ = False
 
 
-class DbtTestSourceField(SingleSourceField):
-	expected_file_extensions = (".sql",)
+class DbtTestSourceField(DbtSourceField):
 	help = "The source file for this dbt test."
 
 

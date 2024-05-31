@@ -1,8 +1,9 @@
-from pants.engine.target import COMMON_TARGET_FIELDS, Dependencies, SingleSourceField, Target
+from pants.engine.target import COMMON_TARGET_FIELDS, Dependencies, Target
+
+from .base import DbtSourceField
 
 
-class DbtModelSourceField(SingleSourceField):
-	expected_file_extensions = (".sql", ".py")
+class DbtModelSourceField(DbtSourceField):
 	help = "The source file for this dbt model."
 
 

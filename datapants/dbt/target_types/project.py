@@ -54,6 +54,10 @@ class PackagesFileField(HardcodedSingleSourceField):
 	default = "packages.yml"
 
 
+class DbtProjectOverridesField(OverridesField):
+	help = "Overrides for field defaults propagated by the `dbt_project` target generator."
+
+
 class RequiredAdaptersField(StringSequenceField):
 	alias = "required_adapters"
 	help = "All possible adapters required by this dbt project."
@@ -65,15 +69,14 @@ class DbtProjectTargetGenerator(TargetGenerator):
 		"""A target generator representing a single dbt project which generates targets for all of the projects underlying components."""
 	)
 
-	generated_target_cls = Target
 	core_fields = (
 		*COMMON_TARGET_FIELDS,
 		Dependencies,
-		OverridesField,
+		DbtProjectOverridesField,
 		EnvironmentField,
-		ProjectFileField,
 		ProfilesFileField,
 		PackagesFileField,
+		ProjectFileField,
 		PythonResolveField,
 		RequiredAdaptersField,
 	)

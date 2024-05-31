@@ -6,7 +6,11 @@ import os
 from dataclasses import dataclass
 from typing import Any, Dict
 
-from pants.core.target_types import FileTarget
+from pants.core.target_types import (
+	FileTarget,
+	TargetGeneratorSourcesHelperSourcesField,
+	TargetGeneratorSourcesHelperTarget,
+)
 from pants.engine.fs import PathGlobs, Paths
 from pants.engine.rules import Get, MultiGet, collect_rules, rule
 from pants.engine.target import (
@@ -15,6 +19,7 @@ from pants.engine.target import (
 	GenerateTargetsRequest,
 	InvalidFieldException,
 	OverridesField,
+	SingleSourceField,
 	Target,
 	Targets,
 )
@@ -26,7 +31,7 @@ from .config import DbtConfig, DbtConfigSourceField
 from .doc import DbtDoc, DbtDocSourceField
 from .macro import DbtMacro, DbtMacroSourceField
 from .model import DbtModel, DbtModelSourceField
-from .project import DbtProjectTargetGenerator, ProjectFileField
+from .project import DbtProjectTargetGenerator, PackagesFileField, ProfilesFileField, ProjectFileField
 from .test import DbtTest, DbtTestSourceField
 from .third_party_package import DbtThirdPartyPackage, DbtThirdPartyPackageSpec
 
@@ -90,13 +95,11 @@ async def construct_targets_in_path(request: ConstructTargetsInPathRequest) -> T
 	return Targets(
 		target_type(
 			{
-				"source": os.path.basename(fn),
+				"source": (relative_filepath := os.path.relpath(fn, request.target_generator.address.spec_path)),
 				Dependencies.alias: request.target_generator[Dependencies].value,
-				**_validate_overrides(request.target_generator[OverridesField], fn),
+				**_validate_overrides(request.target_generator[OverridesField], relative_filepath),
 			},
-			request.target_generator.address.create_generated(
-				os.path.relpath(fn, request.target_generator.address.spec_path)
-			),
+			request.target_generator.address.create_generated(relative_filepath),
 		)
 		for target_type, paths in zip(request.target_types, paths_by_target_type)
 		for fn in paths.files
@@ -111,7 +114,16 @@ class GenerateDbtTargetsRequest(GenerateTargetsRequest):
 @rule
 async def generate_dbt_targets(request: GenerateDbtTargetsRequest) -> GeneratedTargets:
 	"""Generate all of the dbt targets from the dbt project root."""
-	dbt_project_spec = await Get(DbtProjectSpec, DbtProjectTargetGenerator, request.generator)
+	core_project_source_fields: list[SingleSourceField] = [
+		request.generator[ProjectFileField],
+		request.generator[PackagesFileField],
+		request.generator[ProfilesFileField],
+	]
+	dbt_project_spec, core_project_files = await MultiGet(
+		Get(DbtProjectSpec, DbtProjectTargetGenerator, request.generator),
+		Get(Paths, PathGlobs(source_field.file_path for source_field in core_project_source_fields)),
+	)
+	core_project_fileset = frozenset(core_project_files.files)
 	return GeneratedTargets(
 		request.generator,
 		(
@@ -125,6 +137,14 @@ async def generate_dbt_targets(request: GenerateDbtTargetsRequest) -> GeneratedT
 					)
 					for target_type, spec_key in SPEC_KEY_TARGET_MAPPING.items()
 				)
+			),
+			*(
+				TargetGeneratorSourcesHelperTarget(
+					{TargetGeneratorSourcesHelperSourcesField.alias: source_field.value},
+					request.template_address.create_file(source_field.value),
+				)
+				for source_field in core_project_source_fields
+				if source_field.file_path in core_project_fileset
 			),
 			*(
 				DbtThirdPartyPackage(

@@ -1,5 +1,5 @@
 [GLOBAL]
-pants_version = "2.20.1"
+pants_version = "2.22.0.dev3"
 backend_packages = [
     "pants.backend.python",
     "pants.backend.python.typecheck.mypy",
@@ -8,6 +8,8 @@ backend_packages = [
     "pants.backend.python.lint.docformatter",
     "pants.backend.experimental.python.lint.ruff.format",
     "pants.backend.plugin_development",
+    # Comment out below until new version release
+    # "pants.backend.experimental.sql"
 ]
 build_ignore = ["sample-project"]
 
