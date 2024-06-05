@@ -4,4 +4,5 @@ python_requirements(
 
 dbt_project(
     name="root",
+    required_adapters=["dbt-duckdb"],
 )

@@ -1,4 +1,5 @@
 from .common_rules import rules as common_rules
+from .dependency_inference import rules as dependency_inference_rules
 from .tailor import rules as tailoring_rules
 from .target_types import (
 	DbtConfig,
@@ -21,4 +22,5 @@ def rules():
 		*tailoring_rules(),
 		*target_rules(),
 		*common_rules(),
+		*dependency_inference_rules(),
 	)

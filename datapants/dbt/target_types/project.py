@@ -1,20 +1,24 @@
 from __future__ import annotations
 
+import collections.abc
 import os
+from typing import Any
 
 from pants.backend.python.target_types import PythonResolveField
 from pants.core.util_rules.environments import EnvironmentField
 from pants.engine.addresses import Address
 from pants.engine.target import (
 	COMMON_TARGET_FIELDS,
+	AsyncFieldMixin,
 	Dependencies,
 	InvalidFieldException,
+	InvalidFieldTypeException,
 	OverridesField,
 	SingleSourceField,
 	StringSequenceField,
-	Target,
 	TargetGenerator,
 )
+from pants.util.frozendict import FrozenDict
 from pants.util.strutil import softwrap
 
 
@@ -61,6 +65,47 @@ class DbtProjectOverridesField(OverridesField):
 class RequiredAdaptersField(StringSequenceField):
 	alias = "required_adapters"
 	help = "All possible adapters required by this dbt project."
+	required = True
+
+
+class RequiredEnvVarsField(AsyncFieldMixin):
+	alias = "env_vars"
+	help = softwrap(
+		"""Pass environment variables to the sandbox environment used to run dbt commands for this project.
+		
+		The value of this field can be either a dictionary, a list of strings in the format 
+		`ENV_VAR_NAME=ENV_VAR_VALUE`, or a path to a file to source environment variables from."""
+	)
+	required = False
+
+	@staticmethod
+	def parse_string(s: str) -> tuple[str, str]:
+		name, value = s.split("=", 1)
+		name, (value[1:-1] if value[0] == value[-1] and value[0] in {'"', "'"} else value)
+
+	@classmethod
+	def compute_value(cls, raw_value: Any, address: Address) -> str | FrozenDict[str, str]:
+		if not raw_value:
+			return FrozenDict()
+		if isinstance(raw_value, str):
+			return raw_value
+		field_type_exception = InvalidFieldTypeException(
+			address,
+			cls.alias,
+			raw_value,
+			expected_type="a dictionary, a list of strings in the format `ENV_VAR_NAME=ENV_VAR_VALUE`, or a path to a file to source environment variables from",
+		)
+
+		def validate_string(s: Any) -> str:
+			if not isinstance(s, str):
+				raise field_type_exception
+			return s
+
+		if isinstance(raw_value, collections.abc.Mapping):
+			return FrozenDict({validate_string(k): validate_string(v) for k, v in raw_value.items()})
+		if isinstance(raw_value, collections.abc.Iterable):
+			return FrozenDict(cls.parse_string(validate_string(entry)) for entry in raw_value)
+		raise field_type_exception
 
 
 class DbtProjectTargetGenerator(TargetGenerator):
@@ -79,13 +124,19 @@ class DbtProjectTargetGenerator(TargetGenerator):
 		ProjectFileField,
 		PythonResolveField,
 		RequiredAdaptersField,
+		RequiredEnvVarsField,
 	)
 
-	copied_fields = (
+	copied_fields = ()
+	moved_fields = (
 		*COMMON_TARGET_FIELDS,
-		PythonResolveField,
-		EnvironmentField,
-		RequiredAdaptersField,
-		ProfilesFileField,
+		Dependencies,
 	)
-	moved_fields = (Dependencies,)
+
+	@property
+	def profiles_dir(self) -> str:
+		return os.path.join(self.address.spec_path, os.path.dirname(self[ProfilesFileField].value))
+
+	@property
+	def project_dir(self) -> str:
+		return os.path.join(self.address.spec_path, os.path.dirname(self[ProjectFileField].value))
