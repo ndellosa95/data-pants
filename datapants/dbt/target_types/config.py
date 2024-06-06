@@ -1,7 +1,9 @@
-from pants.engine.target import COMMON_TARGET_FIELDS, Dependencies, SingleSourceField, Target
+from pants.engine.target import COMMON_TARGET_FIELDS, Dependencies, Target
+
+from .base import DbtSourceField
 
 
-class DbtConfigSourceField(SingleSourceField):
+class DbtConfigSourceField(DbtSourceField):
 	expected_file_extensions = (".yml", ".yaml")
 	help = "The source field for this dbt configuration file."
 

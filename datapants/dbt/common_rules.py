@@ -1,17 +1,19 @@
 from __future__ import annotations
 
 import collections.abc
+import json
+import logging
 import os
 from dataclasses import dataclass, field, replace
-from typing import Any, Iterable
+from typing import Any, Iterable, cast
 
 import yaml
 from packaging.specifiers import Specifier, SpecifierSet
 from packaging.version import Version
-from pants.backend.python.target_types import ConsoleScript
-from pants.backend.python.util_rules.pex import Pex, PexProcess, PexRequest
-from pants.backend.python.util_rules.pex_from_targets import PexFromTargetsRequest
-from pants.engine.fs import EMPTY_DIGEST, Digest, DigestContents, MergeDigests, PathGlobs, Snapshot
+from pants.backend.python.subsystems.setup import PythonSetup
+from pants.backend.python.target_types import ConsoleScript, PythonResolveField
+from pants.backend.python.util_rules.pex import Pex, PexProcess, PexRequest, PexRequirements, Resolve
+from pants.engine.fs import EMPTY_DIGEST, Digest, DigestContents, DigestSubset, MergeDigests, PathGlobs, Snapshot
 from pants.engine.process import Process, ProcessResult
 from pants.engine.rules import Get, MultiGet, collect_rules, rule
 from pants.engine.target import (
@@ -24,7 +26,15 @@ from pants.engine.target import (
 )
 from pants.util.frozendict import FrozenDict
 
-from .target_types.project import DbtProjectTargetGenerator, PackagesFileField, ProjectFileField, RequiredEnvVarsField
+from .target_types.project import (
+	DbtProjectTargetGenerator,
+	PackagesFileField,
+	ProjectFileField,
+	RequiredAdaptersField,
+	RequiredEnvVarsField,
+)
+
+LOGGER = logging.getLogger(__file__)
 
 
 @dataclass(frozen=True)
@@ -169,7 +179,6 @@ class DbtEnvVars(FrozenDict[str, str]):
 	pass
 
 
-# TODO: need to either refactor or make this non-cacheable
 @rule
 async def hydrate_dbt_env_vars(request: HydrateDbtEnvVarsRequest) -> DbtEnvVars:
 	if isinstance(request.field.value, collections.abc.Mapping):
@@ -204,29 +213,31 @@ class DbtCli:
 
 	@property
 	def append_only_caches(self) -> dict[str, str]:
-		return {
-			f"{self.project_name}.{self.profile_target}": os.path.join(self.target.project_dir, self.target_path)
-		}
+		return {f"{self.project_name}_{self.profile_target}".lower(): os.path.join(self.target.project_dir, self.target_path)}
 
 
 @rule
-async def compose_dbt_cli(target: DbtProjectTargetGenerator) -> DbtCli:
+async def compose_dbt_cli(target: DbtProjectTargetGenerator, python_setup: PythonSetup) -> DbtCli:
 	"""Generates a pex for the dbt CLI for a single dbt project."""
-	project_spec, pex_request = await MultiGet(
+	project_spec, pex = await MultiGet(
 		Get(DbtProjectSpec, DbtProjectTargetGenerator, target),
 		Get(
-			PexRequest,
-			PexFromTargetsRequest(
-				[target.address],
+			Pex,
+			PexRequest(
 				output_filename="dbt.pex",
 				internal_only=True,
 				main=ConsoleScript("dbt"),
-				include_source_files=False,
+				requirements=PexRequirements(
+					["dbt-core", *target[RequiredAdaptersField].value],
+					from_superset=Resolve(
+						target[PythonResolveField].normalized_value(python_setup), use_entire_lockfile=False
+					),
+				),
 			),
 		),
 	)
 	return DbtCli(
-		await Get(Pex, PexRequest, pex_request),
+		pex,
 		target,
 		project_spec["name"],
 		project_spec["profile"],
@@ -268,6 +279,11 @@ class HydratedDbtProject:
 	cli: DbtCli
 	hydrated_project: Snapshot
 
+	def parse_command(self) -> DbtCliCommandRequest:
+		return DbtCliCommandRequest(
+			self.cli, self.hydrated_project.digest, ("parse",), description="Parsing dbt project"
+		)
+
 
 @rule
 async def hydrate_dbt_project(target: DbtProjectTargetGenerator) -> HydratedDbtProject:
@@ -287,6 +303,26 @@ async def hydrate_dbt_project(target: DbtProjectTargetGenerator) -> HydratedDbtP
 	)
 	deps_result = await Get(ProcessResult, Process, deps_process)
 	return HydratedDbtProject(dbt_cli, await Get(Snapshot, Digest, deps_result.output_digest))
+
+
+class DbtManifestContent(FrozenDict[str, Any]):
+	pass
+
+
+@rule
+async def parse_dbt_project(target: DbtProjectTargetGenerator) -> DbtManifestContent:
+	hydrated_project = await Get(HydratedDbtProject, DbtProjectTargetGenerator, target)
+	parse_process = await Get(Process, DbtCliCommandRequest, hydrated_project.parse_command())
+	parse_result = await Get(ProcessResult, Process, parse_process)
+	manifest_digest = await Get(
+		Digest,
+		DigestSubset(
+			parse_result.output_digest, PathGlobs([os.path.join(hydrated_project.cli.target_path, "manifest.json")])
+		),
+	)
+	manifest_digest_contents = await Get(DigestContents, Digest, manifest_digest)
+	LOGGER.info(f"Manifest digest contents:\n{manifest_digest_contents[0].content.decode()}\n")
+	return cast(DbtManifestContent, DbtManifestContent.deep_freeze(json.loads(manifest_digest_contents[0].content)))
 
 
 def rules():

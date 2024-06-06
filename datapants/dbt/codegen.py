@@ -3,7 +3,7 @@ from pants.engine.rules import collect_rules, rule
 from pants.engine.target import GeneratedSources, GenerateSourcesRequest
 from pants.engine.unions import UnionRule
 
-from .target_types.base import DbtSourceField
+from .target_types.base import DbtSqlSourceField
 
 # Comment out until new version
 # from pants.backend.sql.target_types import SqlSourceField
@@ -15,7 +15,7 @@ class SqlSourceField(ResourceSourceField):
 
 
 class GenerateSqlSourcesFromDbtRequest(GenerateSourcesRequest):
-	input = DbtSourceField
+	input = DbtSqlSourceField
 	output = SqlSourceField
 
 

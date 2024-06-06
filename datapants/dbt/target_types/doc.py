@@ -1,7 +1,9 @@
-from pants.engine.target import COMMON_TARGET_FIELDS, Dependencies, SingleSourceField, Target
+from pants.engine.target import COMMON_TARGET_FIELDS, Dependencies, Target
+
+from .base import DbtSourceField
 
 
-class DbtDocSourceField(SingleSourceField):
+class DbtDocSourceField(DbtSourceField):
 	expected_file_extensions = (".md",)
 	help = "The source field for this dbt markdown documentation file."
 

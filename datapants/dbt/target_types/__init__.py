@@ -6,9 +6,11 @@ __all__ = [
 	"DbtMacro",
 	"DbtTest",
 	"DbtThirdPartyPackage",
+	"DbtSourceField",
 	"rules",
 ]
 
+from .base import DbtSourceField, DbtSqlSourceField
 from .config import DbtConfig
 from .doc import DbtDoc
 from .macro import DbtMacro

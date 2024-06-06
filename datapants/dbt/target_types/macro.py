@@ -1,9 +1,9 @@
 from pants.engine.target import COMMON_TARGET_FIELDS, Dependencies, Target
 
-from .base import DbtSourceField
+from .base import DbtSqlSourceField
 
 
-class DbtMacroSourceField(DbtSourceField):
+class DbtMacroSourceField(DbtSqlSourceField):
 	help = "The source file for this dbt macro."
 
 
