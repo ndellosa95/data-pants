@@ -16,7 +16,7 @@ from pants.engine.target import (
 )
 from pants.engine.unions import UnionRule
 
-from .common_rules import AddressToDbtUniqueIdMapping, DbtManifest, DbtProjectSpec
+from .common_rules import AddressToDbtUniqueIdMapping, DbtManifest, DbtProjectSpec, ensure_generated_address
 from .target_types import DbtProjectTargetGenerator, DbtSourceField
 from .target_types.macro import DbtMacroSourceField
 from .target_types.model import DbtModelSourceField
@@ -77,11 +77,7 @@ class InferDbtComponentDependenciesRequest(InferDependenciesRequest):
 async def infer_dbt_component_dependencies(request: InferDbtComponentDependenciesRequest) -> InferredDependencies:
 	"""Infer the dependency relationships between each individual dbt
 	component."""
-	if not request.field_set.address.is_generated_target:
-		LOGGER.warning(
-			f"Unable to infer dependencies for dbt target at address `{request.field_set.address}`, which exists "
-			"independent of any dbt project."
-		)
+	if not ensure_generated_address(request.field_set.address, "infer dependencies"):
 		return InferredDependencies([])
 	dbt_project_targets = await Get(
 		UnexpandedTargets, Addresses([request.field_set.address.maybe_convert_to_target_generator()])

@@ -1,4 +1,5 @@
 from .common_rules import rules as common_rules
+from .codegen import rules as codegen_rules
 from .dependency_inference import rules as dependency_inference_rules
 from .tailor import rules as tailoring_rules
 from .target_types import (
@@ -23,4 +24,5 @@ def rules():
 		*target_rules(),
 		*common_rules(),
 		*dependency_inference_rules(),
+		*codegen_rules(),
 	)

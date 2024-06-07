@@ -7,6 +7,7 @@ import os
 from collections import defaultdict
 from contextlib import suppress
 from dataclasses import dataclass, field, replace
+from textwrap import dedent
 from typing import Any, Iterable, Iterator
 
 import yaml
@@ -56,6 +57,17 @@ from .target_types.project import (
 from .target_types.third_party_package import DbtThirdPartyPackageSpec
 
 LOGGER = logging.getLogger(__file__)
+
+
+def ensure_generated_address(address: Address, activity: str, warn_only: bool = True) -> bool:
+	log_msg = LOGGER.warning if warn_only else LOGGER.error
+	if not address.is_generated_target:
+		log_msg(
+			f"Unable to {activity} for dbt target at address `{address}`, which exists independent of any "
+			"dbt project."
+		)
+		return False
+	return True
 
 
 @dataclass(frozen=True)
@@ -311,21 +323,22 @@ async def get_dbt_cli_command_process(
 		),
 	)
 	script_runner_content = f"""\
+		exit 1
 		if [ ! -d {request.cli.target_path} ]; then
-			{mkdir.path} -p '{request.cli.target_path}' > /dev/null 2>&1
-			{cp.path} -r '{os.path.join(request.cli.cached_target_path, "**")}' '{request.cli.target_path}' > /dev/null 2>&1
+			{mkdir.path} -p {request.cli.target_path} > /dev/null 2>&1
+			{cp.path} -r {os.path.join(request.cli.cached_target_path, "**")} {request.cli.target_path} > /dev/null 2>&1
 		fi
 		
 		{' '.join((shell_quote(arg) for arg in pex_process.argv))}
 		EXIT_CODE=$?
 
 		if [ -d {request.cli.target_path} ]; then
-			{cp.path} -r '{os.path.join(request.cli.target_path, "**")}' '{request.cli.cached_target_path}' > /dev/null 2>&1
+			{cp.path} -r {os.path.join(request.cli.target_path, "**")} {request.cli.cached_target_path} > /dev/null 2>&1
 		fi
 		exit $EXIT_CODE
 	"""
 	script_runner_digest = await Get(
-		Digest, CreateDigest([FileContent("__dbt_runner.sh", script_runner_content.encode(), is_executable=True)])
+		Digest, CreateDigest([FileContent("__dbt_runner.sh", dedent(script_runner_content).encode(), is_executable=True)])
 	)
 	new_process_digest = await Get(Digest, MergeDigests([script_runner_digest, pex_process.input_digest]))
 	return replace(pex_process, argv=("__dbt_runner.sh",), input_digest=new_process_digest)
@@ -343,6 +356,15 @@ class HydratedDbtProject:
 			("parse",),
 			description="Parsing dbt project",
 			output_files=(os.path.join(self.cli.target_path, "manifest.json"),),
+		)
+
+	def compile_command(self) -> DbtCliCommandRequest:
+		return DbtCliCommandRequest(
+			self.cli,
+			self.hydrated_project.digest,
+			("compile",),
+			description="Compiling dbt project",
+			output_directories=(os.path.join(self.cli.target_path, "compiled"),),
 		)
 
 
@@ -400,8 +422,6 @@ async def parse_dbt_project(target: DbtProjectTargetGenerator) -> DbtManifest:
 	hydrated_project = await Get(HydratedDbtProject, DbtProjectTargetGenerator, target)
 	parse_process = await Get(Process, DbtCliCommandRequest, hydrated_project.parse_command())
 	parse_result = await Get(ProcessResult, Process, parse_process)
-	# snapshot = await Get(Snapshot, Digest, parse_result.output_digest)
-	# LOGGER.error(f"Files: {snapshot.files}")
 	manifest_digest_contents = await Get(DigestContents, Digest, parse_result.output_digest)
 	return DbtManifest(
 		target, FrozenDict.deep_freeze(json.loads(manifest_digest_contents[0].content)), parse_result.output_digest
