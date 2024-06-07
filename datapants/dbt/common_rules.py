@@ -14,10 +14,20 @@ from packaging.specifiers import Specifier, SpecifierSet
 from packaging.version import Version
 from pants.backend.python.subsystems.setup import PythonSetup
 from pants.backend.python.target_types import ConsoleScript, PythonResolveField
-from pants.backend.python.util_rules.pex import Pex, PexProcess, PexRequest, PexRequirements, Resolve
+from pants.backend.python.util_rules.pex import PexRequest, PexRequirements, Resolve, VenvPex, VenvPexProcess
 from pants.core.target_types import FileSourceField
+from pants.core.util_rules.system_binaries import CpBinary, MkdirBinary
 from pants.engine.addresses import Address
-from pants.engine.fs import EMPTY_DIGEST, Digest, DigestContents, DigestSubset, MergeDigests, PathGlobs, Snapshot
+from pants.engine.fs import (
+	EMPTY_DIGEST,
+	CreateDigest,
+	Digest,
+	DigestContents,
+	FileContent,
+	MergeDigests,
+	PathGlobs,
+	Snapshot,
+)
 from pants.engine.process import Process, ProcessResult
 from pants.engine.rules import Get, MultiGet, collect_rules, rule
 from pants.engine.target import (
@@ -32,6 +42,7 @@ from pants.engine.target import (
 )
 from pants.util.frozendict import FrozenDict
 from pants.util.memo import memoized_property
+from pants.util.strutil import shell_quote
 
 from .target_types import DbtSourceField
 from .target_types.project import (
@@ -207,7 +218,7 @@ async def hydrate_dbt_env_vars(request: HydrateDbtEnvVarsRequest) -> DbtEnvVars:
 
 @dataclass(frozen=True)
 class DbtCli:
-	pex: Pex
+	pex: VenvPex
 	target: DbtProjectTargetGenerator
 	project_name: str
 	profile_name: str
@@ -221,6 +232,13 @@ class DbtCli:
 	def target_path(self) -> str:
 		return os.path.join(self.target.project_dir, self.target_path_in_project_dir)
 
+	@property
+	def cached_target_path(self) -> str:
+		return (
+			f"__{self.project_name}_{self.profile_name}_{self.profile_target}_{self.target_path_in_project_dir}_"
+			+ "append_only_target_cache__"
+		)
+
 	def make_args(self, *args: str) -> tuple[str, ...]:
 		added_args = [f"--project-dir={self.target.project_dir}", f"--profiles-dir={self.target.profiles_dir}"]
 		if self.profile_target:
@@ -229,7 +247,7 @@ class DbtCli:
 
 	@property
 	def append_only_caches(self) -> dict[str, str]:
-		return {f"{self.project_name}_{self.profile_name}_{self.profile_target}".lower(): self.target_path}
+		return {f"{self.project_name}_{self.profile_name}_{self.profile_target}".lower(): self.cached_target_path}
 
 
 @rule
@@ -238,7 +256,7 @@ async def compose_dbt_cli(target: DbtProjectTargetGenerator, python_setup: Pytho
 	project_spec, pex = await MultiGet(
 		Get(DbtProjectSpec, DbtProjectTargetGenerator, target),
 		Get(
-			Pex,
+			VenvPex,
 			PexRequest(
 				output_filename="dbt.pex",
 				internal_only=True,
@@ -267,27 +285,50 @@ class DbtCliCommandRequest:
 	digest: Digest
 	argv: tuple[str, ...]
 	description: str = field(compare=False)
-	save_output: bool = True
+	output_directories: tuple[str, ...] | None = None
+	output_files: tuple[str, ...] | None = None
 
 
 @rule
-async def get_dbt_cli_command_process(request: DbtCliCommandRequest) -> Process:
+async def get_dbt_cli_command_process(
+	request: DbtCliCommandRequest,
+	mkdir: MkdirBinary,
+	cp: CpBinary,
+) -> Process:
 	"""Runs a dbt CLI command."""
 	env_vars = await Get(DbtEnvVars, HydrateDbtEnvVarsRequest(request.cli.target[RequiredEnvVarsField]))
 	pex_process = await Get(
 		Process,
-		PexProcess(
+		VenvPexProcess(
 			request.cli.pex,
 			argv=request.cli.make_args(*request.argv),
 			description=request.description,
 			input_digest=request.digest,
-			output_directories=(".",) if request.save_output else None,
+			output_directories=request.output_directories,
+			output_files=(*(request.output_files or ()), "!__dbt_runner.sh"),
 			extra_env=env_vars,
+			append_only_caches=request.cli.append_only_caches,
 		),
 	)
-	return replace(
-		pex_process, append_only_caches=FrozenDict({**pex_process.append_only_caches, **request.cli.append_only_caches})
+	script_runner_content = f"""\
+		if [ ! -d {request.cli.target_path} ]; then
+			{mkdir.path} -p '{request.cli.target_path}' > /dev/null 2>&1
+			{cp.path} -r '{os.path.join(request.cli.cached_target_path, "**")}' '{request.cli.target_path}' > /dev/null 2>&1
+		fi
+		
+		{' '.join((shell_quote(arg) for arg in pex_process.argv))}
+		EXIT_CODE=$?
+
+		if [ -d {request.cli.target_path} ]; then
+			{cp.path} -r '{os.path.join(request.cli.target_path, "**")}' '{request.cli.cached_target_path}' > /dev/null 2>&1
+		fi
+		exit $EXIT_CODE
+	"""
+	script_runner_digest = await Get(
+		Digest, CreateDigest([FileContent("__dbt_runner.sh", script_runner_content.encode(), is_executable=True)])
 	)
+	new_process_digest = await Get(Digest, MergeDigests([script_runner_digest, pex_process.input_digest]))
+	return replace(pex_process, argv=("__dbt_runner.sh",), input_digest=new_process_digest)
 
 
 @dataclass(frozen=True)
@@ -297,7 +338,11 @@ class HydratedDbtProject:
 
 	def parse_command(self) -> DbtCliCommandRequest:
 		return DbtCliCommandRequest(
-			self.cli, self.hydrated_project.digest, ("parse",), description="Parsing dbt project"
+			self.cli,
+			self.hydrated_project.digest,
+			("parse",),
+			description="Parsing dbt project",
+			output_files=(os.path.join(self.cli.target_path, "manifest.json"),),
 		)
 
 
@@ -315,7 +360,10 @@ async def hydrate_dbt_project(target: DbtProjectTargetGenerator) -> HydratedDbtP
 	)
 	merged_sources = await Get(Digest, MergeDigests(source.snapshot.digest for source in hydrated_sources))
 	deps_process = await Get(
-		Process, DbtCliCommandRequest(dbt_cli, merged_sources, ("deps",), description="Hydrating dbt dependencies")
+		Process,
+		DbtCliCommandRequest(
+			dbt_cli, merged_sources, ("deps",), description="Hydrating dbt dependencies", output_directories=(".",)
+		),
 	)
 	deps_result = await Get(ProcessResult, Process, deps_process)
 	return HydratedDbtProject(dbt_cli, await Get(Snapshot, Digest, deps_result.output_digest))
@@ -352,20 +400,16 @@ async def parse_dbt_project(target: DbtProjectTargetGenerator) -> DbtManifest:
 	hydrated_project = await Get(HydratedDbtProject, DbtProjectTargetGenerator, target)
 	parse_process = await Get(Process, DbtCliCommandRequest, hydrated_project.parse_command())
 	parse_result = await Get(ProcessResult, Process, parse_process)
-	snapshot = await Get(Snapshot, Digest, parse_result.output_digest)
-	LOGGER.error(f"Snapshot files: {snapshot.files}")
-	manifest_digest = await Get(
-		Digest,
-		DigestSubset(
-			parse_result.output_digest, PathGlobs([os.path.join(hydrated_project.cli.target_path, "manifest.json")])
-		),
+	# snapshot = await Get(Snapshot, Digest, parse_result.output_digest)
+	# LOGGER.error(f"Files: {snapshot.files}")
+	manifest_digest_contents = await Get(DigestContents, Digest, parse_result.output_digest)
+	return DbtManifest(
+		target, FrozenDict.deep_freeze(json.loads(manifest_digest_contents[0].content)), parse_result.output_digest
 	)
-	manifest_digest_contents = await Get(DigestContents, Digest, manifest_digest)
-	return DbtManifest(target, FrozenDict.deep_freeze(json.loads(manifest_digest_contents[0].content)), manifest_digest)
 
 
 @dataclass(frozen=True)
-class AddressToDbtUniqueIdMapping:
+class AddressToDbtUniqueIdMapping(collections.abc.Mapping):
 	manifest: DbtManifest
 	unique_ids_per_address: FrozenDict[Address, frozenset[str]]
 
@@ -383,6 +427,15 @@ class AddressToDbtUniqueIdMapping:
 				for unique_id in unique_ids
 			}
 		)
+
+	def __getitem__(self, k: Address) -> frozenset[str]:
+		return self.unique_ids_per_address[k]
+
+	def __len__(self) -> int:
+		return len(self.unique_ids_per_address)
+
+	def __iter__(self) -> Iterator[Address]:
+		return iter(self.unique_ids_per_address)
 
 
 @rule

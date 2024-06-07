@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from pants.backend.python.subsystems.setup import PythonSetup
 from pants.backend.python.target_types import PythonRequirementResolveField, PythonRequirementsField, PythonResolveField
 from pants.engine.addresses import Addresses
+from pants.engine.internals.graph import Owners, OwnersRequest
 from pants.engine.rules import Get, collect_rules, rule
 from pants.engine.target import (
 	AllTargets,
@@ -15,8 +16,9 @@ from pants.engine.target import (
 )
 from pants.engine.unions import UnionRule
 
-from .common_rules import AddressToDbtUniqueIdMapping, DbtManifest
+from .common_rules import AddressToDbtUniqueIdMapping, DbtManifest, DbtProjectSpec
 from .target_types import DbtProjectTargetGenerator, DbtSourceField
+from .target_types.macro import DbtMacroSourceField
 from .target_types.model import DbtModelSourceField
 from .target_types.project import RequiredAdaptersField
 
@@ -66,6 +68,10 @@ class InferDbtComponentDependenciesRequest(InferDependenciesRequest):
 	def is_model_request(self) -> bool:
 		return isinstance(self.field_set.source, DbtModelSourceField)
 
+	@property
+	def is_macro_request(self) -> bool:
+		return isinstance(self.field_set.source, DbtMacroSourceField)
+
 
 @rule
 async def infer_dbt_component_dependencies(request: InferDbtComponentDependenciesRequest) -> InferredDependencies:
@@ -77,24 +83,46 @@ async def infer_dbt_component_dependencies(request: InferDbtComponentDependencie
 			"independent of any dbt project."
 		)
 		return InferredDependencies([])
-	dbt_project_target = await Get(
+	dbt_project_targets = await Get(
 		UnexpandedTargets, Addresses([request.field_set.address.maybe_convert_to_target_generator()])
 	)
-	dbt_manifest = await Get(DbtManifest, DbtProjectTargetGenerator, dbt_project_target[0])
+	dbt_project_target: DbtProjectTargetGenerator = dbt_project_targets.expect_single()
+	dbt_manifest = await Get(DbtManifest, DbtProjectTargetGenerator, dbt_project_target)
 	address_to_unique_id_mapping = await Get(AddressToDbtUniqueIdMapping, DbtManifest, dbt_manifest)
-	deps = {
-		address_to_unique_id_mapping.unique_id_to_address_mapping[parent_unique_id]
-		for unique_id in address_to_unique_id_mapping[request.field_set.address]
-		for parent_unique_id in dbt_manifest.content["parent_map"][unique_id]
-	}
-	if request.is_model_request:
-		deps |= {
-			address_to_unique_id_mapping.unique_id_to_address_mapping[child_unique_id]
+	if request.field_set.address not in address_to_unique_id_mapping:
+		return InferredDependencies([])
+
+	if request.is_macro_request:
+		deps = {
+			address_to_unique_id_mapping.unique_id_to_address_mapping[parent_macro_id]
 			for unique_id in address_to_unique_id_mapping[request.field_set.address]
-			for child_unique_id in dbt_manifest.content["child_map"][unique_id]
-			if dbt_manifest.unique_id_to_node_mapping[child_unique_id]["resource_type"] != "model"
+			for parent_macro_id in dbt_manifest.unique_id_to_node_mapping[unique_id]["depends_on"]["macros"]
 		}
-	return InferredDependencies(deps)
+	else:
+		deps = {
+			address_to_unique_id_mapping.unique_id_to_address_mapping[parent_unique_id]
+			for unique_id in address_to_unique_id_mapping[request.field_set.address]
+			for parent_unique_id in dbt_manifest.content["parent_map"][unique_id]
+		}
+		if request.is_model_request:
+			deps |= {
+				address_to_unique_id_mapping.unique_id_to_address_mapping[child_unique_id]
+				for unique_id in address_to_unique_id_mapping[request.field_set.address]
+				for child_unique_id in dbt_manifest.content["child_map"][unique_id]
+				if dbt_manifest.unique_id_to_node_mapping[child_unique_id]["resource_type"] != "model"
+			}
+			project_spec = await Get(DbtProjectSpec, DbtProjectTargetGenerator, dbt_project_target)
+			deps |= await Get(
+				Owners,
+				OwnersRequest(
+					tuple(
+						patch_path.replace(f"{project_spec['name']}://", f"{dbt_project_target.project_dir}/")
+						for unique_id in address_to_unique_id_mapping[request.field_set.address]
+						if (patch_path := dbt_manifest.unique_id_to_node_mapping[unique_id].get("patch_path"))
+					)
+				),
+			)
+	return InferredDependencies(deps - {request.field_set.address})
 
 
 def rules():
