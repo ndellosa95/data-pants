@@ -4,8 +4,10 @@ import collections.abc
 import json
 import logging
 import os
+from collections import defaultdict
+from contextlib import suppress
 from dataclasses import dataclass, field, replace
-from typing import Any, Iterable, cast
+from typing import Any, Iterable, Iterator
 
 import yaml
 from packaging.specifiers import Specifier, SpecifierSet
@@ -13,26 +15,34 @@ from packaging.version import Version
 from pants.backend.python.subsystems.setup import PythonSetup
 from pants.backend.python.target_types import ConsoleScript, PythonResolveField
 from pants.backend.python.util_rules.pex import Pex, PexProcess, PexRequest, PexRequirements, Resolve
+from pants.core.target_types import FileSourceField
+from pants.engine.addresses import Address
 from pants.engine.fs import EMPTY_DIGEST, Digest, DigestContents, DigestSubset, MergeDigests, PathGlobs, Snapshot
 from pants.engine.process import Process, ProcessResult
 from pants.engine.rules import Get, MultiGet, collect_rules, rule
 from pants.engine.target import (
+	AllTargets,
 	Dependencies,
 	DependenciesRequest,
 	HydratedSources,
 	HydrateSourcesRequest,
+	SingleSourceField,
 	SourcesField,
 	Targets,
 )
 from pants.util.frozendict import FrozenDict
+from pants.util.memo import memoized_property
 
+from .target_types import DbtSourceField
 from .target_types.project import (
 	DbtProjectTargetGenerator,
 	PackagesFileField,
+	ProfileTargetField,
 	ProjectFileField,
 	RequiredAdaptersField,
 	RequiredEnvVarsField,
 )
+from .target_types.third_party_package import DbtThirdPartyPackageSpec
 
 LOGGER = logging.getLogger(__file__)
 
@@ -200,20 +210,26 @@ class DbtCli:
 	pex: Pex
 	target: DbtProjectTargetGenerator
 	project_name: str
-	profile_target: str
-	target_path: str
+	profile_name: str
+	target_path_in_project_dir: str
+
+	@property
+	def profile_target(self) -> str | None:
+		return self.target[ProfileTargetField].value
+
+	@property
+	def target_path(self) -> str:
+		return os.path.join(self.target.project_dir, self.target_path_in_project_dir)
 
 	def make_args(self, *args: str) -> tuple[str, ...]:
-		return (
-			f"--project-dir={self.target.project_dir}",
-			f"--profiles-dir={self.target.profiles_dir}",
-			f"--target={self.profile_target}",
-			*args,
-		)
+		added_args = [f"--project-dir={self.target.project_dir}", f"--profiles-dir={self.target.profiles_dir}"]
+		if self.profile_target:
+			added_args.append(f"--target={self.profile_target}")
+		return (*args, *added_args)
 
 	@property
 	def append_only_caches(self) -> dict[str, str]:
-		return {f"{self.project_name}_{self.profile_target}".lower(): os.path.join(self.target.project_dir, self.target_path)}
+		return {f"{self.project_name}_{self.profile_name}_{self.profile_target}".lower(): self.target_path}
 
 
 @rule
@@ -305,15 +321,39 @@ async def hydrate_dbt_project(target: DbtProjectTargetGenerator) -> HydratedDbtP
 	return HydratedDbtProject(dbt_cli, await Get(Snapshot, Digest, deps_result.output_digest))
 
 
-class DbtManifestContent(FrozenDict[str, Any]):
-	pass
+MINIMUM_NODE_SET = frozenset(["original_file_path", "unique_id"])
+
+
+@dataclass(frozen=True)
+class DbtManifest:
+	"""Dataclass representing a generated dbt manifest for a single dbt
+	project."""
+
+	project_target: DbtProjectTargetGenerator
+	content: FrozenDict[str, Any]
+	digest: Digest
+
+	@memoized_property
+	def unique_id_to_node_mapping(self) -> FrozenDict[str, FrozenDict[str, Any]]:
+		def traverse(root: FrozenDict[str, Any]) -> Iterator[tuple[str, FrozenDict[str, Any]]]:
+			for v in root.values():
+				if not isinstance(v, FrozenDict):
+					continue
+				if MINIMUM_NODE_SET.issubset(v.keys()):
+					yield v["unique_id"], v
+				else:
+					yield from traverse(v)
+
+		return FrozenDict(traverse(self.content))
 
 
 @rule
-async def parse_dbt_project(target: DbtProjectTargetGenerator) -> DbtManifestContent:
+async def parse_dbt_project(target: DbtProjectTargetGenerator) -> DbtManifest:
 	hydrated_project = await Get(HydratedDbtProject, DbtProjectTargetGenerator, target)
 	parse_process = await Get(Process, DbtCliCommandRequest, hydrated_project.parse_command())
 	parse_result = await Get(ProcessResult, Process, parse_process)
+	snapshot = await Get(Snapshot, Digest, parse_result.output_digest)
+	LOGGER.error(f"Snapshot files: {snapshot.files}")
 	manifest_digest = await Get(
 		Digest,
 		DigestSubset(
@@ -321,8 +361,51 @@ async def parse_dbt_project(target: DbtProjectTargetGenerator) -> DbtManifestCon
 		),
 	)
 	manifest_digest_contents = await Get(DigestContents, Digest, manifest_digest)
-	LOGGER.info(f"Manifest digest contents:\n{manifest_digest_contents[0].content.decode()}\n")
-	return cast(DbtManifestContent, DbtManifestContent.deep_freeze(json.loads(manifest_digest_contents[0].content)))
+	return DbtManifest(target, FrozenDict.deep_freeze(json.loads(manifest_digest_contents[0].content)), manifest_digest)
+
+
+@dataclass(frozen=True)
+class AddressToDbtUniqueIdMapping:
+	manifest: DbtManifest
+	unique_ids_per_address: FrozenDict[Address, frozenset[str]]
+
+	def get_nodes_for_address(self, address: Address) -> tuple[FrozenDict[str, Any], ...]:
+		return tuple(
+			self.manifest.unique_id_to_node_mapping[unique_id] for unique_id in self.unique_ids_per_address[address]
+		)
+
+	@memoized_property
+	def unique_id_to_address_mapping(self) -> FrozenDict[str, Address]:
+		return FrozenDict(
+			{
+				unique_id: address
+				for address, unique_ids in self.unique_ids_per_address.items()
+				for unique_id in unique_ids
+			}
+		)
+
+
+@rule
+async def map_addresses_to_unique_ids(manifest: DbtManifest, all_targets: AllTargets) -> AddressToDbtUniqueIdMapping:
+	address_by_file = {
+		os.path.relpath(tgt[SingleSourceField].file_path, manifest.project_target.project_dir): tgt.address
+		for tgt in all_targets
+		if tgt.has_field(DbtSourceField) or tgt.has_field(FileSourceField)
+	}
+	address_by_package = {
+		tgt[DbtThirdPartyPackageSpec].package_name: tgt.address
+		for tgt in all_targets
+		if tgt.has_field(DbtThirdPartyPackageSpec)
+	}
+	unique_ids_per_address = defaultdict(set)
+	for unique_id, node in manifest.unique_id_to_node_mapping.items():
+		with suppress(KeyError):
+			unique_ids_per_address[
+				address_by_file.get(node["original_file_path"]) or address_by_package[node["package_name"]]
+			].add(unique_id)
+	return AddressToDbtUniqueIdMapping(
+		manifest, FrozenDict({address: frozenset(unique_ids) for address, unique_ids in unique_ids_per_address.items()})
+	)
 
 
 def rules():

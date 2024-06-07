@@ -15,8 +15,9 @@ from pants.engine.target import (
 )
 from pants.engine.unions import UnionRule
 
-from .common_rules import DbtManifestContent
+from .common_rules import AddressToDbtUniqueIdMapping, DbtManifest
 from .target_types import DbtProjectTargetGenerator, DbtSourceField
+from .target_types.model import DbtModelSourceField
 from .target_types.project import RequiredAdaptersField
 
 LOGGER = logging.getLogger(__file__)
@@ -61,6 +62,10 @@ class DbtComponentDependencyInferenceFieldSet(FieldSet):
 class InferDbtComponentDependenciesRequest(InferDependenciesRequest):
 	infer_from = DbtComponentDependencyInferenceFieldSet
 
+	@property
+	def is_model_request(self) -> bool:
+		return isinstance(self.field_set.source, DbtModelSourceField)
+
 
 @rule
 async def infer_dbt_component_dependencies(request: InferDbtComponentDependenciesRequest) -> InferredDependencies:
@@ -68,15 +73,28 @@ async def infer_dbt_component_dependencies(request: InferDbtComponentDependencie
 	component."""
 	if not request.field_set.address.is_generated_target:
 		LOGGER.warning(
-			f"Unable to infer dependencies for dbt target at address `{request.field_set.address}`, which exists independent of any dbt project."
+			f"Unable to infer dependencies for dbt target at address `{request.field_set.address}`, which exists "
+			"independent of any dbt project."
 		)
 		return InferredDependencies([])
 	dbt_project_target = await Get(
 		UnexpandedTargets, Addresses([request.field_set.address.maybe_convert_to_target_generator()])
 	)
-	manifest_content = await Get(DbtManifestContent, DbtProjectTargetGenerator, dbt_project_target[0])
-	# TODO: finish
-	return InferredDependencies([])
+	dbt_manifest = await Get(DbtManifest, DbtProjectTargetGenerator, dbt_project_target[0])
+	address_to_unique_id_mapping = await Get(AddressToDbtUniqueIdMapping, DbtManifest, dbt_manifest)
+	deps = {
+		address_to_unique_id_mapping.unique_id_to_address_mapping[parent_unique_id]
+		for unique_id in address_to_unique_id_mapping[request.field_set.address]
+		for parent_unique_id in dbt_manifest.content["parent_map"][unique_id]
+	}
+	if request.is_model_request:
+		deps |= {
+			address_to_unique_id_mapping.unique_id_to_address_mapping[child_unique_id]
+			for unique_id in address_to_unique_id_mapping[request.field_set.address]
+			for child_unique_id in dbt_manifest.content["child_map"][unique_id]
+			if dbt_manifest.unique_id_to_node_mapping[child_unique_id]["resource_type"] != "model"
+		}
+	return InferredDependencies(deps)
 
 
 def rules():

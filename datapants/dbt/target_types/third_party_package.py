@@ -26,6 +26,10 @@ class DbtThirdPartyPackageSpec(Field):
 			)
 		return FrozenDict.deep_freeze(value_or_default)
 
+	@property
+	def package_name(self) -> str:
+		return DbtThirdPartyPackage.construct_name_from_spec(self.value)
+
 
 class DbtThirdPartyPackage(Target):
 	alias = "dbt_third_party_package"
@@ -34,11 +38,14 @@ class DbtThirdPartyPackage(Target):
 
 	@staticmethod
 	def construct_name_from_spec(spec: Mapping[str, Any]) -> str:
+		if "name" in spec:
+			return spec["name"]
 		if "package" in spec:
-			return spec["package"]
+			package: str = spec["package"]
+			return package[package.rindex("/") + 1 :]
 		git: str = spec["git"]
-		return git[git.index(":") + 1 : -4]
+		return git[git.rindex("/") + 1 : -4]
 
 	@staticmethod
 	def is_third_party_package_spec(package_spec: Mapping[str, Any]) -> bool:
-		return bool(package_spec.keys() & {"package", "git"})
+		return any(k in package_spec for k in ("package", "git", "tarball"))

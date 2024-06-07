@@ -15,6 +15,7 @@ from pants.engine.target import (
 	InvalidFieldTypeException,
 	OverridesField,
 	SingleSourceField,
+	StringField,
 	StringSequenceField,
 	TargetGenerator,
 )
@@ -108,6 +109,11 @@ class RequiredEnvVarsField(AsyncFieldMixin):
 		raise field_type_exception
 
 
+class ProfileTargetField(StringField):
+	alias = "profile_target"
+	help = "Which target within a single profile to use for this dbt project."
+
+
 class DbtProjectTargetGenerator(TargetGenerator):
 	alias = "dbt_project"
 	help = softwrap(
@@ -125,18 +131,20 @@ class DbtProjectTargetGenerator(TargetGenerator):
 		PythonResolveField,
 		RequiredAdaptersField,
 		RequiredEnvVarsField,
+		ProfileTargetField,
 	)
 
 	copied_fields = ()
-	moved_fields = (
-		*COMMON_TARGET_FIELDS,
-		Dependencies,
-	)
+	moved_fields = COMMON_TARGET_FIELDS
+
+	@property
+	def spec_path(self) -> str:
+		return self.address.spec_path or "."
 
 	@property
 	def profiles_dir(self) -> str:
-		return os.path.join(self.address.spec_path, os.path.dirname(self[ProfilesFileField].value))
+		return os.path.join(self.spec_path, os.path.dirname(self[ProfilesFileField].value))
 
 	@property
 	def project_dir(self) -> str:
-		return os.path.join(self.address.spec_path, os.path.dirname(self[ProjectFileField].value))
+		return os.path.join(self.spec_path, os.path.dirname(self[ProjectFileField].value))

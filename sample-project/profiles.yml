@@ -1,6 +1,6 @@
 datapants:
   target: default
-  output:
+  outputs:
     default:
       type: duckdb
       path: 'datapants.duckdb'
