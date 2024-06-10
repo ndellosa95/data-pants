@@ -43,7 +43,8 @@ async def run_dbt_compile(target: DbtProjectTargetGenerator) -> WrappedCompiledD
 	hydrated_project = await Get(HydratedDbtProject, DbtProjectTargetGenerator, target)
 	compile_process = await Get(Process, DbtCliCommandRequest, hydrated_project.compile_command())
 	compile_results = await Get(ProcessResult, Process, compile_process)
-	return WrappedCompiledDbtProjectDigest(compile_results.output_digest)
+	compiled_digest_subset = await Get(Digest, DigestSubset(compile_results.output_digest, PathGlobs([os.path.join(hydrated_project.cli.target_path, "compiled")])))
+	return WrappedCompiledDbtProjectDigest(compiled_digest_subset)
 
 
 @rule

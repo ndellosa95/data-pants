@@ -17,7 +17,7 @@ from pants.backend.python.subsystems.setup import PythonSetup
 from pants.backend.python.target_types import ConsoleScript, PythonResolveField
 from pants.backend.python.util_rules.pex import PexRequest, PexRequirements, Resolve, VenvPex, VenvPexProcess
 from pants.core.target_types import FileSourceField
-from pants.core.util_rules.system_binaries import CpBinary, MkdirBinary
+from pants.core.util_rules.system_binaries import CpBinary, MkdirBinary, ChmodBinary
 from pants.engine.addresses import Address
 from pants.engine.fs import (
 	EMPTY_DIGEST,
@@ -306,6 +306,7 @@ async def get_dbt_cli_command_process(
 	request: DbtCliCommandRequest,
 	mkdir: MkdirBinary,
 	cp: CpBinary,
+	chmod: ChmodBinary,
 ) -> Process:
 	"""Runs a dbt CLI command."""
 	env_vars = await Get(DbtEnvVars, HydrateDbtEnvVarsRequest(request.cli.target[RequiredEnvVarsField]))
@@ -323,12 +324,14 @@ async def get_dbt_cli_command_process(
 		),
 	)
 	script_runner_content = f"""\
-		exit 1
 		if [ ! -d {request.cli.target_path} ]; then
 			{mkdir.path} -p {request.cli.target_path} > /dev/null 2>&1
-			{cp.path} -r {os.path.join(request.cli.cached_target_path, "**")} {request.cli.target_path} > /dev/null 2>&1
+			if [ -d {request.cli.cached_target_path} ]; then
+				{cp.path} -r {os.path.join(request.cli.cached_target_path, "**")} {request.cli.target_path} > /dev/null 2>&1
+			fi
 		fi
-		
+
+		{chmod.path} -R 777 {request.cli.target_path} > /dev/null 2>&1		
 		{' '.join((shell_quote(arg) for arg in pex_process.argv))}
 		EXIT_CODE=$?
 
@@ -364,7 +367,7 @@ class HydratedDbtProject:
 			self.hydrated_project.digest,
 			("compile",),
 			description="Compiling dbt project",
-			output_directories=(os.path.join(self.cli.target_path, "compiled"),),
+			output_directories=(".",),
 		)
 
 
