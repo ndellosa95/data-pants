@@ -13,6 +13,9 @@ backend_packages = [
 ]
 build_ignore = ["sample-project"]
 
+[test]
+use_coverage = true
+
 [python]
 enable_resolves = true
 default_resolve = "pants-plugins"
@@ -32,4 +35,5 @@ pants-plugins = "lock.txt"
 pants-plugins = ["==3.9.*"]
 
 [coverage-py]
+interpreter_constraints = ["==3.9.*"]
 report = ["console"]
