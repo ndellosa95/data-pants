@@ -40,7 +40,7 @@ def rule_runner() -> RuleRunner:
 	],
 	ids=("Enabled", "Disabled"),
 )
-def test_tailor(options: list[str], expected: PutativeTargets, rule_runner: RuleRunner):
+def test_tailor(options: list[str], expected: PutativeTargets, rule_runner: RuleRunner) -> None:
 	rule_runner.write_files(
 		{
 			"a/dbt_project.yml": "mock content",

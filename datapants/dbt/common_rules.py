@@ -331,7 +331,7 @@ async def get_dbt_cli_command_process(
 			fi
 		fi
 
-		{chmod.path} -R 777 {request.cli.target_path} > /dev/null 2>&1		
+		{chmod.path} -R 666 {request.cli.target_path} > /dev/null 2>&1		
 		{' '.join((shell_quote(arg) for arg in pex_process.argv))}
 		EXIT_CODE=$?
 

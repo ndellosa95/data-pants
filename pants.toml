@@ -1,5 +1,5 @@
 [GLOBAL]
-pants_version = "2.22.0.dev3"
+pants_version = "2.21.0"
 backend_packages = [
     "pants.backend.python",
     "pants.backend.python.typecheck.mypy",
@@ -30,3 +30,6 @@ pants-plugins = "lock.txt"
 # field on each `python_sources` and `python_tests` target in
 # our plugin! This only impacts how the lockfile is generated.
 pants-plugins = ["==3.9.*"]
+
+[coverage-py]
+report = ["console"]
