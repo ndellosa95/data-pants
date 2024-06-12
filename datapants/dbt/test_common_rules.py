@@ -10,6 +10,7 @@ from pants.engine.environment import EnvironmentName
 from pants.testutil.rule_runner import QueryRule, RuleRunner
 from pants.util.frozendict import FrozenDict
 from pants.engine.fs import EMPTY_DIGEST
+from pants.engine.internals.scheduler import ExecutionError
 
 from .common_rules import SpecifierRange, rules as common_rules, DbtProjectSpec, InvalidDbtProject
 from .target_types import DbtProjectTargetGenerator
@@ -128,7 +129,11 @@ def test_get_dbt_project_spec(requires_dbt_version: str | list[str], packages_fi
 	if packages_contents:
 		project_files[f"a/{packages_file or 'packages.yml'}"] = yaml.safe_dump(packages_contents)
 	rule_runner.write_files(project_files)
-	project_spec = rule_runner.request(DbtProjectSpec, [rule_runner.get_target(Address("a"))])
+	try:
+		project_spec = rule_runner.request(DbtProjectSpec, [rule_runner.get_target(Address("a"))])
+	except ExecutionError as e:
+		print(e)
+		raise e.wrapped_exceptions[0] if e.wrapped_exceptions else e
 	assert project_spec.project_spec == FrozenDict.deep_freeze(project_spec_contents)
 	assert project_spec.digest is not EMPTY_DIGEST
 	assert project_spec.packages == FrozenDict.deep_freeze(packages_contents)["packages"]

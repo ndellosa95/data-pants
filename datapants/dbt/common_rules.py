@@ -108,7 +108,7 @@ class SpecifierRange:
 	def __str__(self) -> str:
 		parts = []
 		if self.min_version:
-			parts.append((">=" if self.min_inclusive else ">") + self.max_version)
+			parts.append((">=" if self.min_inclusive else ">") + self.min_version)
 		if self.max_version:
 			parts.append(("<=" if self.max_inclusive else "<") + self.max_version)
 		return ",".join(parts)

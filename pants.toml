@@ -36,7 +36,8 @@ pants-plugins = ["==3.9.*"]
 
 [pytest]
 install_from_resolve = "pants-plugins"
-requirements = ["pytest-raises", "pytest-cov"]
+args = ["--no-header", "-vv"]
+requirements = ["pytest", "pytest-cov"]
 
 [coverage-py]
 interpreter_constraints = ["==3.9.*"]
