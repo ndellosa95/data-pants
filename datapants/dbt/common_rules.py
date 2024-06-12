@@ -17,7 +17,7 @@ from pants.backend.python.subsystems.setup import PythonSetup
 from pants.backend.python.target_types import ConsoleScript, PythonResolveField
 from pants.backend.python.util_rules.pex import PexRequest, PexRequirements, Resolve, VenvPex, VenvPexProcess
 from pants.core.target_types import FileSourceField
-from pants.core.util_rules.system_binaries import CpBinary, MkdirBinary, ChmodBinary
+from pants.core.util_rules.system_binaries import ChmodBinary, CpBinary, MkdirBinary
 from pants.engine.addresses import Address
 from pants.engine.fs import (
 	EMPTY_DIGEST,
@@ -339,7 +339,8 @@ async def get_dbt_cli_command_process(
 		exit $EXIT_CODE
 	"""
 	script_runner_digest = await Get(
-		Digest, CreateDigest([FileContent("__dbt_runner.sh", dedent(script_runner_content).encode(), is_executable=True)])
+		Digest,
+		CreateDigest([FileContent("__dbt_runner.sh", dedent(script_runner_content).encode(), is_executable=True)]),
 	)
 	new_process_digest = await Get(Digest, MergeDigests([script_runner_digest, pex_process.input_digest]))
 	return replace(pex_process, argv=("__dbt_runner.sh",), input_digest=new_process_digest)

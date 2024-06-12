@@ -7,12 +7,13 @@ import yaml
 from packaging.specifiers import SpecifierSet
 from pants.engine.addresses import Address
 from pants.engine.environment import EnvironmentName
-from pants.testutil.rule_runner import QueryRule, RuleRunner
-from pants.util.frozendict import FrozenDict
 from pants.engine.fs import EMPTY_DIGEST
 from pants.engine.internals.scheduler import ExecutionError
+from pants.testutil.rule_runner import QueryRule, RuleRunner
+from pants.util.frozendict import FrozenDict
 
-from .common_rules import SpecifierRange, rules as common_rules, DbtProjectSpec, InvalidDbtProject
+from .common_rules import DbtProjectSpec, InvalidDbtProject, SpecifierRange
+from .common_rules import rules as common_rules
 from .target_types import DbtProjectTargetGenerator
 
 
@@ -99,10 +100,7 @@ def test_specifier_range_is_subset_for_equals(spec_range: SpecifierRange, specs:
 def rule_runner() -> RuleRunner:
 	return RuleRunner(
 		target_types=[DbtProjectTargetGenerator],
-		rules=(
-			*common_rules(),
-			QueryRule(DbtProjectSpec, [DbtProjectTargetGenerator, EnvironmentName])
-		),
+		rules=(*common_rules(), QueryRule(DbtProjectSpec, [DbtProjectTargetGenerator, EnvironmentName])),
 	)
 
 
@@ -113,18 +111,25 @@ def rule_runner() -> RuleRunner:
 		("<1.7,>=1.5", None, {"packages": [{"a": "b"}, {"c": "d"}]}),
 		(["<1.7", ">=1.5"], None, {"packages": [{"a": "b"}, {"c": "d"}]}),
 		pytest.param("<1.7,>=1.5", "package-lock.yml", None, marks=pytest.mark.raises(exception=InvalidDbtProject)),
-		pytest.param(["<1.7", ">=1.5"], "package-lock.yml", None, marks=pytest.mark.raises(exception=InvalidDbtProject)),
+		pytest.param(
+			["<1.7", ">=1.5"], "package-lock.yml", None, marks=pytest.mark.raises(exception=InvalidDbtProject)
+		),
 		(">=1.7", "package-lock.yml", {"packages": [{"a": "b"}, {"c": "d"}]}),
 		([">=1.7"], "package-lock.yml", {"packages": [{"a": "b"}, {"c": "d"}]}),
-		pytest.param("<1.7", None, {"bad_dict": "yadda"}, marks=pytest.mark.raises(exception=InvalidDbtProject))
-	]
+		pytest.param("<1.7", None, {"bad_dict": "yadda"}, marks=pytest.mark.raises(exception=InvalidDbtProject)),
+	],
 )
-def test_get_dbt_project_spec(requires_dbt_version: str | list[str], packages_file: str | None, packages_contents: dict[str, Any] | None, rule_runner: RuleRunner) -> None:
+def test_get_dbt_project_spec(
+	requires_dbt_version: str | list[str],
+	packages_file: str | None,
+	packages_contents: dict[str, Any] | None,
+	rule_runner: RuleRunner,
+) -> None:
 	project_spec_contents = {"name": "a", "requires-dbt-version": requires_dbt_version}
 	package_file_param = f' packages_file="{packages_file}"' if packages_file else ""
 	project_files = {
 		"a/dbt_project.yml": yaml.safe_dump(project_spec_contents),
-		"a/BUILD": f'dbt_project(required_adapters=["dbt-duckdb"],{package_file_param})'
+		"a/BUILD": f'dbt_project(required_adapters=["dbt-duckdb"],{package_file_param})',
 	}
 	if packages_contents:
 		project_files[f"a/{packages_file or 'packages.yml'}"] = yaml.safe_dump(packages_contents)

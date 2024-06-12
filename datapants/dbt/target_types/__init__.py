@@ -10,7 +10,7 @@ __all__ = [
 	"rules",
 ]
 
-from .base import DbtSourceField, DbtSqlSourceField
+from .base import DbtSourceField
 from .config import DbtConfig
 from .doc import DbtDoc
 from .macro import DbtMacro
