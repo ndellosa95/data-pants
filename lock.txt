@@ -10,7 +10,9 @@
 //   ],
 //   "generated_with_requirements": [
 //     "pantsbuild.pants.testutil==2.21.0",
-//     "pantsbuild.pants==2.21.0"
+//     "pantsbuild.pants==2.21.0",
+//     "pytest-cov",
+//     "pytest-raises"
 //   ],
 //   "manylinux": "manylinux2014",
 //   "requirement_constraints": [],
@@ -104,6 +106,66 @@
           "requires_dists": [],
           "requires_python": null,
           "version": "0.14.0"
+        },
+        {
+          "artifacts": [
+            {
+              "algorithm": "sha256",
+              "hash": "3538d8fb1ee9bdd2e2692b3b18c22bb1c19ffbefd06880f5ac496e42d7bb3884",
+              "url": "https://files.pythonhosted.org/packages/f6/c9/7953a450762a62abbaf0a65b67fe406b3b515a755139b3db662da441ac87/coverage-7.5.3-pp38.pp39.pp310-none-any.whl"
+            },
+            {
+              "algorithm": "sha256",
+              "hash": "2e079c9ec772fedbade9d7ebc36202a1d9ef7291bc9b3a024ca395c4d52853d7",
+              "url": "https://files.pythonhosted.org/packages/07/e0/0e30ca5c6c5bcae86df9583c30807ff26e0b991e76f266b81224410663e4/coverage-7.5.3-cp39-cp39-manylinux_2_5_x86_64.manylinux1_x86_64.manylinux_2_17_x86_64.manylinux2014_x86_64.whl"
+            },
+            {
+              "algorithm": "sha256",
+              "hash": "8383a6c8cefba1b7cecc0149415046b6fc38836295bc4c84e820872eb5478b3d",
+              "url": "https://files.pythonhosted.org/packages/30/ab/701129bdffd493d59070b238238d25ad8882f4967d44f7a399833a5585ae/coverage-7.5.3-cp39-cp39-manylinux_2_17_aarch64.manylinux2014_aarch64.whl"
+            },
+            {
+              "algorithm": "sha256",
+              "hash": "3d5a67f0da401e105753d474369ab034c7bae51a4c31c77d94030d59e41df5bd",
+              "url": "https://files.pythonhosted.org/packages/36/82/116efdd87a81ec86d4a4fbaf7f132dd6beb233c00b4d2374cf2981aaeecd/coverage-7.5.3-cp39-cp39-musllinux_1_1_x86_64.whl"
+            },
+            {
+              "algorithm": "sha256",
+              "hash": "990fb20b32990b2ce2c5f974c3e738c9358b2735bc05075d50a6f36721b8f303",
+              "url": "https://files.pythonhosted.org/packages/3c/66/6f06c86471c79ebff4a300390b5fe1d3b2b9101995075e48d096092ddb6d/coverage-7.5.3-cp39-cp39-musllinux_1_1_i686.whl"
+            },
+            {
+              "algorithm": "sha256",
+              "hash": "f5102a92855d518b0996eb197772f5ac2a527c0ec617124ad5242a3af5e25f85",
+              "url": "https://files.pythonhosted.org/packages/57/99/ccb1e4f40688d793ac54407fc86d120c6816ae99b747b47d3e2cc1067457/coverage-7.5.3-cp39-cp39-macosx_10_9_x86_64.whl"
+            },
+            {
+              "algorithm": "sha256",
+              "hash": "d1da0a2e3b37b745a2b2a678a4c796462cf753aebf94edcc87dcc6b8641eae31",
+              "url": "https://files.pythonhosted.org/packages/65/af/3b0268da4cba77f3dda012bafe90b8cbf163713ac92b3cc237ff794bf277/coverage-7.5.3-cp39-cp39-macosx_11_0_arm64.whl"
+            },
+            {
+              "algorithm": "sha256",
+              "hash": "04aefca5190d1dc7a53a4c1a5a7f8568811306d7a8ee231c42fb69215571944f",
+              "url": "https://files.pythonhosted.org/packages/6c/a5/62ae2dc1850feabb74207a422d00893f451ee0950e52792eb208970a30b1/coverage-7.5.3.tar.gz"
+            },
+            {
+              "algorithm": "sha256",
+              "hash": "bde997cac85fcac227b27d4fb2c7608a2c5f6558469b0eb704c5726ae49e1c52",
+              "url": "https://files.pythonhosted.org/packages/93/3b/dbca2db3a60ed8543a0c815bf83875bf549e02fe6df4baa736216dfb33ae/coverage-7.5.3-cp39-cp39-musllinux_1_1_aarch64.whl"
+            },
+            {
+              "algorithm": "sha256",
+              "hash": "9aad68c3f2566dfae84bf46295a79e79d904e1c21ccfc66de88cd446f8686341",
+              "url": "https://files.pythonhosted.org/packages/e7/10/ad84d019b8d72e92fb908a0524a190f7212062f89360099907b7a812dc65/coverage-7.5.3-cp39-cp39-manylinux_2_5_i686.manylinux1_i686.manylinux_2_17_i686.manylinux2014_i686.whl"
+            }
+          ],
+          "project_name": "coverage",
+          "requires_dists": [
+            "tomli; python_full_version <= \"3.11.0a6\" and extra == \"toml\""
+          ],
+          "requires_python": ">=3.8",
+          "version": "7.5.3"
         },
         {
           "artifacts": [
@@ -479,6 +541,54 @@
           ],
           "requires_python": ">=3.6",
           "version": "7.0.1"
+        },
+        {
+          "artifacts": [
+            {
+              "algorithm": "sha256",
+              "hash": "4f0764a1219df53214206bf1feea4633c3b558a2925c8b59f144f682861ce652",
+              "url": "https://files.pythonhosted.org/packages/78/3a/af5b4fa5961d9a1e6237b530eb87dd04aea6eb83da09d2a4073d81b54ccf/pytest_cov-5.0.0-py3-none-any.whl"
+            },
+            {
+              "algorithm": "sha256",
+              "hash": "5837b58e9f6ebd335b0f8060eecce69b662415b16dc503883a02f45dfeb14857",
+              "url": "https://files.pythonhosted.org/packages/74/67/00efc8d11b630c56f15f4ad9c7f9223f1e5ec275aaae3fa9118c6a223ad2/pytest-cov-5.0.0.tar.gz"
+            }
+          ],
+          "project_name": "pytest-cov",
+          "requires_dists": [
+            "coverage[toml]>=5.2.1",
+            "fields; extra == \"testing\"",
+            "hunter; extra == \"testing\"",
+            "process-tests; extra == \"testing\"",
+            "pytest-xdist; extra == \"testing\"",
+            "pytest>=4.6",
+            "virtualenv; extra == \"testing\""
+          ],
+          "requires_python": ">=3.8",
+          "version": "5.0.0"
+        },
+        {
+          "artifacts": [
+            {
+              "algorithm": "sha256",
+              "hash": "33a1351f2debb9f74ca6ef70e374899f608a1217bf13ca4a0767f37b49e9cdda",
+              "url": "https://files.pythonhosted.org/packages/9f/9b/3201a24d75c89d69be72d8628af73d1780e5857d86eb4b7df41efe238210/pytest_raises-0.11-py2.py3-none-any.whl"
+            },
+            {
+              "algorithm": "sha256",
+              "hash": "f64a4dbcb5f89c100670fe83d87a5cd9d956586db461c5c628f7eb94b749c90b",
+              "url": "https://files.pythonhosted.org/packages/2d/a1/cfb28f1bc8b7a99aa48fb6719640071a5fd00a8b5d78a693635c51ac6822/pytest-raises-0.11.tar.gz"
+            }
+          ],
+          "project_name": "pytest-raises",
+          "requires_dists": [
+            "pylint; extra == \"develop\"",
+            "pytest-cov; extra == \"develop\"",
+            "pytest>=3.2.2"
+          ],
+          "requires_python": null,
+          "version": "0.11"
         },
         {
           "artifacts": [
@@ -908,7 +1018,9 @@
   "prefer_older_binary": false,
   "requirements": [
     "pantsbuild.pants.testutil==2.21.0",
-    "pantsbuild.pants==2.21.0"
+    "pantsbuild.pants==2.21.0",
+    "pytest-cov",
+    "pytest-raises"
   ],
   "requires_python": [
     "==3.9.*"

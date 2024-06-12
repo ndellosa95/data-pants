@@ -34,6 +34,10 @@ pants-plugins = "lock.txt"
 # our plugin! This only impacts how the lockfile is generated.
 pants-plugins = ["==3.9.*"]
 
+[pytest]
+install_from_resolve = "pants-plugins"
+requirements = ["pytest-raises", "pytest-cov"]
+
 [coverage-py]
 interpreter_constraints = ["==3.9.*"]
-report = ["console"]
+report = ["console", "html"]

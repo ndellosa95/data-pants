@@ -74,7 +74,7 @@ def ensure_generated_address(address: Address, activity: str, warn_only: bool = 
 class DbtProjectSpec(collections.abc.Mapping):
 	project_spec: FrozenDict[str, Any]
 	digest: Digest
-	packages: tuple[FrozenDict[str, Any], ...] | None
+	packages: tuple[FrozenDict[str, Any], ...]
 
 	def __getitem__(self, key: str) -> Any:
 		return self.project_spec[key]
@@ -189,17 +189,15 @@ async def load_project_spec_for_target_generator(target_generator: DbtProjectTar
 			project_name=loaded_contents.get("name"),
 		)
 
-	packages = None
 	packages_sources = await Get(HydratedSources, HydrateSourcesRequest(target_generator[PackagesFileField]))
-	if packages_sources.snapshot.files:
-		packages_contents = await Get(DigestContents, Digest, packages_sources.snapshot.digest)
-		loaded_package_contents = _safe_load_frozendict(packages_contents[0].content)
-		try:
-			packages = loaded_package_contents["packages"]
-		except KeyError as ke:
-			raise InvalidDbtProject(
-				"Invalid packages file without `packages` header.", project_name=loaded_contents.get("name")
-			) from ke
+	packages_contents = await Get(DigestContents, Digest, packages_sources.snapshot.digest)
+	loaded_package_contents = _safe_load_frozendict(packages_contents[0].content)
+	try:
+		packages = loaded_package_contents["packages"]
+	except KeyError as ke:
+		raise InvalidDbtProject(
+			"Invalid packages file without `packages` header.", project_name=loaded_contents.get("name")
+		) from ke
 	return DbtProjectSpec(loaded_contents, dbt_project_yml_sources.snapshot.digest, packages)
 
 
