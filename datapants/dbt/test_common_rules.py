@@ -137,7 +137,6 @@ def test_get_dbt_project_spec(
 	try:
 		project_spec = rule_runner.request(DbtProjectSpec, [rule_runner.get_target(Address("a"))])
 	except ExecutionError as e:
-		print(e)
 		raise e.wrapped_exceptions[0] if e.wrapped_exceptions else e
 	assert project_spec.project_spec == FrozenDict.deep_freeze(project_spec_contents)
 	assert project_spec.digest is not EMPTY_DIGEST
