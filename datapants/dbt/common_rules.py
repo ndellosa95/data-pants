@@ -214,11 +214,9 @@ class DbtEnvVars(FrozenDict[str, str]):
 async def hydrate_dbt_env_vars(request: HydrateDbtEnvVarsRequest) -> DbtEnvVars:
 	if isinstance(request.field.value, collections.abc.Mapping):
 		return DbtEnvVars(request.field.value)
-	env_var_filepath = os.path.relpath(
-		os.path.join(request.field.address.spec_path, request.field.value), request.field.address.spec_path
-	)
+	env_var_filepath = os.path.join(request.field.address.spec_path, request.field.value)
 	env_file_digest = await Get(Digest, PathGlobs([env_var_filepath]))
-	if env_file_digest is EMPTY_DIGEST:
+	if env_file_digest == EMPTY_DIGEST:
 		raise RuntimeError(f"Cannot locate file environment file at path `{env_var_filepath}`.")
 	env_var_file_contents = await Get(DigestContents, Digest, env_file_digest)
 	return DbtEnvVars(

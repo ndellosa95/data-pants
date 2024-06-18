@@ -82,7 +82,7 @@ class RequiredEnvVarsField(AsyncFieldMixin):
 	@staticmethod
 	def parse_string(s: str) -> tuple[str, str]:
 		name, value = s.split("=", 1)
-		name, (value[1:-1] if value[0] == value[-1] and value[0] in {'"', "'"} else value)
+		return name, (value[1:-1] if value[0] == value[-1] and value[0] in {'"', "'"} else value)
 
 	@classmethod
 	def compute_value(cls, raw_value: Any, address: Address) -> str | FrozenDict[str, str]:

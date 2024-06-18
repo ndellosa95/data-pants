@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from contextlib import contextmanager
 from typing import Any
 
 import pytest
@@ -12,9 +13,10 @@ from pants.engine.internals.scheduler import ExecutionError
 from pants.testutil.rule_runner import QueryRule, RuleRunner
 from pants.util.frozendict import FrozenDict
 
-from .common_rules import DbtProjectSpec, InvalidDbtProject, SpecifierRange
+from .common_rules import DbtEnvVars, DbtProjectSpec, HydrateDbtEnvVarsRequest, InvalidDbtProject, SpecifierRange
 from .common_rules import rules as common_rules
 from .target_types import DbtProjectTargetGenerator
+from .target_types.project import RequiredEnvVarsField
 
 
 @pytest.mark.parametrize(
@@ -100,8 +102,20 @@ def test_specifier_range_is_subset_for_equals(spec_range: SpecifierRange, specs:
 def rule_runner() -> RuleRunner:
 	return RuleRunner(
 		target_types=[DbtProjectTargetGenerator],
-		rules=(*common_rules(), QueryRule(DbtProjectSpec, [DbtProjectTargetGenerator, EnvironmentName])),
+		rules=(
+			*common_rules(),
+			QueryRule(DbtProjectSpec, [DbtProjectTargetGenerator, EnvironmentName]),
+			QueryRule(DbtEnvVars, [HydrateDbtEnvVarsRequest]),
+		),
 	)
+
+
+@contextmanager
+def _wrapped_execution_error():
+	try:
+		yield
+	except ExecutionError as e:
+		raise e.wrapped_exceptions[0] if e.wrapped_exceptions else e
 
 
 @pytest.mark.parametrize(
@@ -119,10 +133,10 @@ def rule_runner() -> RuleRunner:
 		pytest.param("<1.7", None, {"bad_dict": "yadda"}, marks=pytest.mark.raises(exception=InvalidDbtProject)),
 	],
 )
-def test_get_dbt_project_spec(
+def test_load_project_spec_for_target_generator(
 	requires_dbt_version: str | list[str],
 	packages_file: str | None,
-	packages_contents: dict[str, Any] | None,
+	packages_contents: dict[str, Any],
 	rule_runner: RuleRunner,
 ) -> None:
 	project_spec_contents = {"name": "a", "requires-dbt-version": requires_dbt_version}
@@ -130,14 +144,31 @@ def test_get_dbt_project_spec(
 	project_files = {
 		"a/dbt_project.yml": yaml.safe_dump(project_spec_contents),
 		"a/BUILD": f'dbt_project(required_adapters=["dbt-duckdb"],{package_file_param})',
+		f"a/{packages_file or 'packages.yml'}": yaml.safe_dump(packages_contents),
 	}
-	if packages_contents:
-		project_files[f"a/{packages_file or 'packages.yml'}"] = yaml.safe_dump(packages_contents)
 	rule_runner.write_files(project_files)
-	try:
+	with _wrapped_execution_error():
 		project_spec = rule_runner.request(DbtProjectSpec, [rule_runner.get_target(Address("a"))])
-	except ExecutionError as e:
-		raise e.wrapped_exceptions[0] if e.wrapped_exceptions else e
 	assert project_spec.project_spec == FrozenDict.deep_freeze(project_spec_contents)
 	assert project_spec.digest is not EMPTY_DIGEST
 	assert project_spec.packages == FrozenDict.deep_freeze(packages_contents)["packages"]
+
+
+@pytest.mark.parametrize(
+	argnames="request_value",
+	argvalues=(
+		{"HELLO": "world", "GOODBYE": '"moon"', "HOLA": "'mundo'", "ADIOS": "luna", "CIAO": "bella"},
+		".env",
+		pytest.param(".fakeenv", marks=pytest.mark.raises(exception=RuntimeError)),
+	),
+)
+def test_hydrate_dbt_env_vars(request_value: dict[str, str] | str, rule_runner: RuleRunner) -> None:
+	expected = DbtEnvVars({"HELLO": "world", "GOODBYE": '"moon"', "HOLA": "'mundo'", "ADIOS": "luna", "CIAO": "bella"})
+	rule_runner.write_files(
+		{"a/.env": "\n".join(["HELLO=world", "GOODBYE='\"moon\"'", "HOLA=\"'mundo'\"", "ADIOS='luna'", 'CIAO="bella"'])}
+	)
+	with _wrapped_execution_error():
+		dbt_env_vars = rule_runner.request(
+			DbtEnvVars, [HydrateDbtEnvVarsRequest(RequiredEnvVarsField(request_value, Address("a")))]
+		)
+	assert dbt_env_vars == expected
