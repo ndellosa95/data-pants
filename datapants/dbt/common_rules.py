@@ -190,14 +190,17 @@ async def load_project_spec_for_target_generator(target_generator: DbtProjectTar
 		)
 
 	packages_sources = await Get(HydratedSources, HydrateSourcesRequest(target_generator[PackagesFileField]))
-	packages_contents = await Get(DigestContents, Digest, packages_sources.snapshot.digest)
-	loaded_package_contents = _safe_load_frozendict(packages_contents[0].content)
-	try:
-		packages = loaded_package_contents["packages"]
-	except KeyError as ke:
-		raise InvalidDbtProject(
-			"Invalid packages file without `packages` header.", project_name=loaded_contents.get("name")
-		) from ke
+	if packages_sources.snapshot.digest == EMPTY_DIGEST:
+		packages = ()
+	else:
+		packages_contents = await Get(DigestContents, Digest, packages_sources.snapshot.digest)
+		loaded_package_contents = _safe_load_frozendict(packages_contents[0].content)
+		try:
+			packages = loaded_package_contents["packages"]
+		except KeyError as ke:
+			raise InvalidDbtProject(
+				"Invalid packages file without `packages` header.", project_name=loaded_contents.get("name")
+			) from ke
 	return DbtProjectSpec(loaded_contents, dbt_project_yml_sources.snapshot.digest, packages)
 
 
@@ -319,11 +322,14 @@ async def get_dbt_cli_command_process(
 			append_only_caches=request.cli.append_only_caches,
 		),
 	)
+	cpr_cached_target_path, cpr_target_path = [
+		os.path.join(path, "**") for path in (request.cli.cached_target_path, request.cli.target_path)
+	]
 	script_runner_content = f"""\
 		if [ ! -d {request.cli.target_path} ]; then
 			{mkdir.path} -p {request.cli.target_path} > /dev/null 2>&1
 			if [ -d {request.cli.cached_target_path} ]; then
-				{cp.path} -r {os.path.join(request.cli.cached_target_path, "**")} {request.cli.target_path} > /dev/null 2>&1
+				{cp.path} -r {cpr_cached_target_path} {request.cli.target_path} > /dev/null 2>&1
 			fi
 		fi
 
@@ -332,7 +338,7 @@ async def get_dbt_cli_command_process(
 		EXIT_CODE=$?
 
 		if [ -d {request.cli.target_path} ]; then
-			{cp.path} -r {os.path.join(request.cli.target_path, "**")} {request.cli.cached_target_path} > /dev/null 2>&1
+			{cp.path} -r {cpr_target_path} {request.cli.cached_target_path} > /dev/null 2>&1
 		fi
 		exit $EXIT_CODE
 	"""

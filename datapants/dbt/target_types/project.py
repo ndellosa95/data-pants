@@ -57,6 +57,7 @@ class PackagesFileField(HardcodedSingleSourceField):
 	help = "The path to the packages file for loading third-party packages for this project."
 	valid_choices = ("packages.yml", "dependencies.yml", "package-lock.yml")
 	default = "packages.yml"
+	expected_num_files = range(0, 2)
 
 
 class DbtProjectOverridesField(OverridesField):
