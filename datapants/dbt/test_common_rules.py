@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from contextlib import contextmanager
 from typing import Any
-from unittest.mock import Mock
+from unittest.mock import ANY, Mock
 
 import pytest
 import yaml
@@ -13,7 +13,7 @@ from pants.backend.python.util_rules.pex import PexRequest, PexRequirements, Res
 from pants.core.util_rules.system_binaries import ChmodBinary, CpBinary, MkdirBinary
 from pants.engine.addresses import Address
 from pants.engine.environment import EnvironmentName
-from pants.engine.fs import EMPTY_DIGEST, CreateDigest, Digest, MergeDigests
+from pants.engine.fs import EMPTY_DIGEST, CreateDigest, Digest, DigestEntries, FileEntry, MergeDigests
 from pants.engine.internals.scheduler import ExecutionError
 from pants.engine.process import Process, ProcessCacheScope
 from pants.testutil.option_util import create_subsystem
@@ -123,6 +123,7 @@ def rule_runner() -> RuleRunner:
 			*common_rules(),
 			QueryRule(DbtProjectSpec, [DbtProjectTargetGenerator, EnvironmentName]),
 			QueryRule(DbtEnvVars, [HydrateDbtEnvVarsRequest]),
+			QueryRule(DigestEntries, (Digest, EnvironmentName)),
 		),
 	)
 
@@ -290,3 +291,7 @@ def test_get_dbt_cli_command_process(rule_runner: RuleRunner) -> None:
 	assert result.output_files == ("!__dbt_runner.sh",)
 	assert result.output_directories == ("target",)
 	assert result.cache_scope == ProcessCacheScope.SUCCESSFUL
+	input_digest_entries = rule_runner.request(DigestEntries, [result.input_digest])
+	assert input_digest_entries == DigestEntries(
+		[FileEntry("__dbt_runner.sh", ANY, is_executable=True), FileEntry("testfile", ANY, is_executable=False)]
+	)
