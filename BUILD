@@ -5,6 +5,10 @@ python_requirements(
     source="additional_requirements.txt",
 )
 
-__defaults__({
-    (python_test, python_tests, python_test_utils): {"dependencies": ["//:additional_reqs#pytest-raises"]}
-})
+__defaults__(
+    {
+        (python_test, python_tests, python_test_utils): {
+            "dependencies": ["//:additional_reqs#pytest-raises"]
+        }
+    }
+)

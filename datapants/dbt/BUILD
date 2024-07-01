@@ -1,7 +1,7 @@
 python_sources()
 
 files(
-    name="sample-project", 
+    name="sample-project",
     sources=["sample-project/**", "test_lockfiles/*.txt"],
 )
 

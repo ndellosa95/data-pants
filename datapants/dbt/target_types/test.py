@@ -2,7 +2,7 @@ from pants.engine.target import COMMON_TARGET_FIELDS, Dependencies, Target
 
 from .base import DbtSqlSourceField
 
-__test__ = False
+__test__ = False  # required to disable pytest discovery / pants tailoring
 
 
 class DbtTestSourceField(DbtSqlSourceField):

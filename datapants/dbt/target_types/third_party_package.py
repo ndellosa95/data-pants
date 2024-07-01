@@ -1,8 +1,9 @@
 import collections.abc
 from typing import Any, Mapping
+from urllib.parse import urlparse
 
 from pants.engine.addresses import Address
-from pants.engine.target import COMMON_TARGET_FIELDS, Field, InvalidFieldTypeException, Target
+from pants.engine.target import COMMON_TARGET_FIELDS, Field, InvalidFieldException, InvalidFieldTypeException, Target
 from pants.util.frozendict import FrozenDict
 
 
@@ -38,13 +39,17 @@ class DbtThirdPartyPackage(Target):
 
 	@staticmethod
 	def construct_name_from_spec(spec: Mapping[str, Any]) -> str:
-		if "name" in spec:
-			return spec["name"]
+		if "tarball" in spec:
+			try:
+				return spec["name"]
+			except KeyError as ke:
+				raise InvalidFieldException(
+					"Tarball packages require a `name` field", description_of_origin=f"Package spec {spec}"
+				) from ke
 		if "package" in spec:
 			package: str = spec["package"]
 			return package[package.rindex("/") + 1 :]
-		git: str = spec["git"]
-		return git[git.rindex("/") + 1 : -4]
+		return urlparse(spec["git"]).path[1:-4]
 
 	@staticmethod
 	def is_third_party_package_spec(package_spec: Mapping[str, Any]) -> bool:
