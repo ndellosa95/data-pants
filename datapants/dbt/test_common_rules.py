@@ -29,9 +29,10 @@ from pants.core.target_types import FileTarget
 from pants.core.util_rules.system_binaries import ChmodBinary, CpBinary, MkdirBinary
 from pants.engine.addresses import Address
 from pants.engine.environment import EnvironmentName
-from pants.engine.fs import EMPTY_DIGEST, AddPrefix, CreateDigest, Digest, DigestEntries, FileEntry, MergeDigests
+from pants.engine.fs import EMPTY_DIGEST, CreateDigest, Digest, DigestEntries, FileEntry, MergeDigests
 from pants.engine.internals.scheduler import ExecutionError
-from pants.engine.process import Process, ProcessCacheScope, ProcessResult, fallible_to_exec_result_or_raise
+from pants.engine.process import Process, ProcessCacheScope, ProcessResult
+from pants.engine.target import AllTargets
 from pants.option.global_options import GlobalOptions
 from pants.testutil.option_util import create_subsystem
 from pants.testutil.python_rule_runner import PythonRuleRunner
@@ -39,9 +40,11 @@ from pants.testutil.rule_runner import MockGet, QueryRule, RuleRunner, run_rule_
 from pants.util.frozendict import FrozenDict
 
 from .common_rules import (
+	AddressToDbtUniqueIdMapping,
 	DbtCli,
 	DbtCliCommandRequest,
 	DbtEnvVars,
+	DbtManifest,
 	DbtProjectSpec,
 	HydrateDbtEnvVarsRequest,
 	HydratedDbtProject,
@@ -49,10 +52,12 @@ from .common_rules import (
 	SpecifierRange,
 	compose_dbt_cli,
 	get_dbt_cli_command_process,
+	map_addresses_to_unique_ids,
 )
 from .common_rules import rules as common_rules
-from .target_types import DbtProjectTargetGenerator
+from .target_types import DbtModel, DbtProjectTargetGenerator, DbtThirdPartyPackage
 from .target_types.project import RequiredEnvVarsField
+from .target_types.third_party_package import DbtThirdPartyPackageSpec
 
 
 @pytest.mark.parametrize(
@@ -152,7 +157,7 @@ def sample_project_files() -> FrozenDict[str, bytes]:
 	def get_file_bytes(path: str) -> bytes:
 		with open(path, "rb") as f:
 			return f.read()
-		
+
 	def walk_dir(path: str) -> set[str]:
 		return {os.path.join(dp, f) for dp, _, fn in os.walk(path) for f in fn}
 
@@ -398,3 +403,73 @@ def test_hydrate_dbt_project(sample_project_rule_runner: PythonRuleRunner) -> No
 	assert isinstance(hydrated_dbt_project.cli, DbtCli)
 	print(hydrated_dbt_project.hydrated_project.files)
 	assert False
+
+
+@pytest.mark.parametrize(
+	"sample_project_rule_runner",
+	argvalues=range(8, 12),
+	ids=(f"CPython 3.{x}" for x in range(8, 12)),
+	indirect=True,
+)
+def test_parse_dbt_project(sample_project_rule_runner: PythonRuleRunner) -> None:
+	project_root_target = sample_project_rule_runner.get_target(Address("sample-project", target_name="root"))
+	dbt_manifest = sample_project_rule_runner.request(DbtManifest, [project_root_target])
+	assert dbt_manifest.project_target == project_root_target
+	assert dbt_manifest.digest != EMPTY_DIGEST
+	assert isinstance(dbt_manifest.content, FrozenDict)
+	assert isinstance(dbt_manifest.digest, Digest)
+
+
+def test_map_addresses_to_unique_ids() -> None:
+	fake_model_address = Address("fake", target_name="model")
+	fake_file_address = Address("fake", target_name="file")
+	fake_package_address = Address("fake", target_name="package")
+	fake_all_targets = AllTargets(
+		[
+			DbtModel({"source": "fake_model.sql"}, fake_model_address),
+			FileTarget({"source": "file.txt"}, fake_file_address),
+			DbtThirdPartyPackage({DbtThirdPartyPackageSpec.alias: {"name": "fake_package"}}, fake_package_address),
+		]
+	)
+	fake_manifest = DbtManifest(
+		DbtProjectTargetGenerator({"required_adapters": ["dbt-duckdb"]}, Address("fake", target_name="project")),
+		FrozenDict.deep_freeze(
+			{
+				"nodes": {
+					"model.fake": {
+						"original_file_path": "fake_model.sql",
+						"unique_id": "model.fake",
+					},
+					"seed.file": {
+						"original_file_path": "file.txt",
+						"unique_id": "seed.file",
+					},
+				},
+				"macros": {
+					"macro.from_package": {
+						"original_file_path": "some_other_file.sql",
+						"unique_id": "macro.from_package",
+						"package_name": "fake_package",
+					},
+					"macro.double_macro": {
+						"original_file_path": "some_another_file.sql",
+						"unique_id": "macro.double_macro",
+						"package_name": "fake_package",
+					},
+				},
+			}
+		),
+		Mock(spec=Digest),
+	)
+	assert run_rule_with_mocks(
+		map_addresses_to_unique_ids, rule_args=(fake_manifest, fake_all_targets)
+	) == AddressToDbtUniqueIdMapping(
+		fake_manifest,
+		FrozenDict(
+			{
+				fake_model_address: frozenset(["model.fake"]),
+				fake_file_address: frozenset(["seed.file"]),
+				fake_package_address: frozenset(["macro.from_package", "macro.double_macro"]),
+			}
+		),
+	)
