@@ -23,15 +23,17 @@ from .common_rules import rules as common_rules
 from .target_types import DbtProjectTargetGenerator
 
 
+def get_file_bytes(path: str) -> bytes:
+	with open(path, "rb") as f:
+		return f.read()
+
+
+def walk_dir(path: str) -> set[str]:
+	return {os.path.join(dp, f) for dp, _, fn in os.walk(path) for f in fn}
+
+
 @pytest.fixture(scope="session")
 def sample_project_files() -> FrozenDict[str, bytes]:
-	def get_file_bytes(path: str) -> bytes:
-		with open(path, "rb") as f:
-			return f.read()
-
-	def walk_dir(path: str) -> set[str]:
-		return {os.path.join(dp, f) for dp, _, fn in os.walk(path) for f in fn}
-
 	return FrozenDict({p: get_file_bytes(p) for p in (walk_dir("sample-project") | walk_dir("test_lockfiles"))})
 
 
