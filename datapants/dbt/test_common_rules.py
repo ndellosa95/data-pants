@@ -1,22 +1,40 @@
 from __future__ import annotations
 
+import json
+import os
 from contextlib import contextmanager
 from typing import Any
 from unittest.mock import ANY, Mock
 
 import pytest
+import toml
 import yaml
 from packaging.specifiers import SpecifierSet
+from pants.backend.python.macros.python_requirements import PythonRequirementsTargetGenerator
 from pants.backend.python.subsystems.setup import PythonSetup
-from pants.backend.python.target_types import ConsoleScript
-from pants.backend.python.util_rules.pex import PexRequest, PexRequirements, Resolve, VenvPex, VenvPexProcess
+from pants.backend.python.target_types import ConsoleScript, PythonRequirementTarget
+from pants.backend.python.util_rules.pex import (
+	Pex,
+	PexProcess,
+	PexRequest,
+	PexRequirements,
+	PexResolveInfo,
+	Resolve,
+	VenvPex,
+	VenvPexProcess,
+)
+from pants.backend.python.util_rules.pex import rules as pex_rules
+from pants.backend.python.util_rules.pex_cli import PexPEX
+from pants.core.target_types import FileTarget
 from pants.core.util_rules.system_binaries import ChmodBinary, CpBinary, MkdirBinary
 from pants.engine.addresses import Address
 from pants.engine.environment import EnvironmentName
-from pants.engine.fs import EMPTY_DIGEST, CreateDigest, Digest, DigestEntries, FileEntry, MergeDigests
+from pants.engine.fs import EMPTY_DIGEST, AddPrefix, CreateDigest, Digest, DigestEntries, FileEntry, MergeDigests
 from pants.engine.internals.scheduler import ExecutionError
-from pants.engine.process import Process, ProcessCacheScope
+from pants.engine.process import Process, ProcessCacheScope, ProcessResult, fallible_to_exec_result_or_raise
+from pants.option.global_options import GlobalOptions
 from pants.testutil.option_util import create_subsystem
+from pants.testutil.python_rule_runner import PythonRuleRunner
 from pants.testutil.rule_runner import MockGet, QueryRule, RuleRunner, run_rule_with_mocks
 from pants.util.frozendict import FrozenDict
 
@@ -26,6 +44,7 @@ from .common_rules import (
 	DbtEnvVars,
 	DbtProjectSpec,
 	HydrateDbtEnvVarsRequest,
+	HydratedDbtProject,
 	InvalidDbtProject,
 	SpecifierRange,
 	compose_dbt_cli,
@@ -126,6 +145,75 @@ def rule_runner() -> RuleRunner:
 			QueryRule(DigestEntries, (Digest, EnvironmentName)),
 		),
 	)
+
+
+@pytest.fixture(scope="module")
+def sample_project_files() -> FrozenDict[str, bytes]:
+	def get_file_bytes(path: str) -> bytes:
+		with open(path, "rb") as f:
+			return f.read()
+		
+	def walk_dir(path: str) -> set[str]:
+		return {os.path.join(dp, f) for dp, _, fn in os.walk(path) for f in fn}
+
+	return FrozenDict({p: get_file_bytes(p) for p in (walk_dir("sample-project") | walk_dir("test_lockfiles"))})
+
+
+@pytest.fixture
+def sample_project_rule_runner(sample_project_files: FrozenDict[str, bytes], request) -> PythonRuleRunner:
+	rule_runner = PythonRuleRunner(
+		target_types=[
+			DbtProjectTargetGenerator,
+			PythonRequirementTarget,
+			FileTarget,
+			PythonRequirementsTargetGenerator,
+		],
+		rules=(
+			QueryRule(GlobalOptions, []),
+			QueryRule(DigestEntries, (Digest, EnvironmentName)),
+			QueryRule(ProcessResult, (Process,)),
+			*common_rules(),
+			QueryRule(DbtProjectSpec, [DbtProjectTargetGenerator, EnvironmentName]),
+			# QueryRule(DbtCli, [DbtProjectTargetGenerator, PythonSetup]),
+			QueryRule(DbtEnvVars, [HydrateDbtEnvVarsRequest]),
+			# QueryRule(Process, [DbtCliCommandRequest, MkdirBinary, CpBinary, ChmodBinary]),
+			QueryRule(HydratedDbtProject, [DbtProjectTargetGenerator, EnvironmentName]),
+			*pex_rules(),
+			QueryRule(PexPEX, ()),
+			QueryRule(Pex, (PexRequest,)),
+			QueryRule(VenvPex, (PexRequest,)),
+			QueryRule(Process, (PexProcess,)),
+			QueryRule(Process, (VenvPexProcess,)),
+			QueryRule(ProcessResult, (Process,)),
+			QueryRule(PexResolveInfo, (Pex,)),
+			QueryRule(PexResolveInfo, (VenvPex,)),
+		),
+	)
+	rule_runner.write_files({"BUILDROOT": b""})
+
+	def fix_options(key: str, opts: dict[str, Any]) -> dict[str, Any]:
+		if key == "GLOBAL":
+			return {}
+		if key == "python":
+			interpreter_constraints = [f"==3.{request.param}.*"]
+			opts["interpreter_constraints"] = interpreter_constraints
+			for k in opts.get("resolves_to_interpreter_constraints", {}):
+				opts["resolves_to_interpreter_constraints"][k] = interpreter_constraints
+			for k in opts.get("resolves", {}):
+				opts["resolves"][k] = os.path.join("test_lockfiles", f"lock{request.param}.txt")
+		return opts
+
+	pants_options: dict[str, dict[str, Any]] = toml.loads(
+		sample_project_files[os.path.join("sample-project", "pants.toml")].decode()
+	)
+	rule_runner_env_vars = {
+		"_".join(["PANTS", top_level_key, k]).upper(): v if isinstance(v, str) else json.dumps(v)
+		for top_level_key, top_level_value in pants_options.items()
+		for k, v in fix_options(top_level_key, top_level_value).items()
+	}
+	rule_runner.set_options((), env=rule_runner_env_vars, env_inherit={"PATH", "PYENV_ROOT", "HOME"})
+	rule_runner.write_files(sample_project_files)
+	return rule_runner
 
 
 @contextmanager
@@ -295,3 +383,18 @@ def test_get_dbt_cli_command_process(rule_runner: RuleRunner) -> None:
 	assert input_digest_entries == DigestEntries(
 		[FileEntry("__dbt_runner.sh", ANY, is_executable=True), FileEntry("testfile", ANY, is_executable=False)]
 	)
+
+
+@pytest.mark.parametrize(
+	"sample_project_rule_runner",
+	argvalues=range(8, 12),
+	ids=(f"CPython 3.{x}" for x in range(8, 12)),
+	indirect=True,
+)
+def test_hydrate_dbt_project(sample_project_rule_runner: PythonRuleRunner) -> None:
+	hydrated_dbt_project = sample_project_rule_runner.request(
+		HydratedDbtProject, [sample_project_rule_runner.get_target(Address("sample-project", target_name="root"))]
+	)
+	assert isinstance(hydrated_dbt_project.cli, DbtCli)
+	print(hydrated_dbt_project.hydrated_project.files)
+	assert False
