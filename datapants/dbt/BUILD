@@ -16,3 +16,7 @@ python_tests(
     name="tests",
     dependencies=[":sample-project-relocated", "//:additional_reqs#pytest-raises"],
 )
+
+python_test_utils(
+    name="test_utils",
+)

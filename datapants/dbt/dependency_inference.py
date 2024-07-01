@@ -1,5 +1,6 @@
 import logging
 from dataclasses import dataclass
+from typing import ClassVar, Type
 
 from pants.backend.python.subsystems.setup import PythonSetup
 from pants.backend.python.target_types import PythonRequirementResolveField, PythonRequirementsField, PythonResolveField
@@ -62,7 +63,7 @@ class DbtComponentDependencyInferenceFieldSet(FieldSet):
 
 
 class InferDbtComponentDependenciesRequest(InferDependenciesRequest):
-	infer_from = DbtComponentDependencyInferenceFieldSet
+	infer_from: ClassVar[Type[DbtComponentDependencyInferenceFieldSet]] = DbtComponentDependencyInferenceFieldSet
 
 	@property
 	def is_model_request(self) -> bool:
