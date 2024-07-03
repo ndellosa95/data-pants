@@ -13,6 +13,7 @@ from pants.core.target_types import FileTarget
 from pants.engine.environment import EnvironmentName
 from pants.engine.fs import Digest, DigestEntries
 from pants.engine.process import Process, ProcessResult
+from pants.engine.target import GeneratedTargets, InferredDependencies, Targets
 from pants.option.global_options import GlobalOptions
 from pants.testutil.python_rule_runner import PythonRuleRunner
 from pants.testutil.rule_runner import QueryRule
@@ -20,7 +21,11 @@ from pants.util.frozendict import FrozenDict
 
 from .common_rules import DbtEnvVars, DbtProjectSpec, HydrateDbtEnvVarsRequest, HydratedDbtProject
 from .common_rules import rules as common_rules
-from .target_types import DbtProjectTargetGenerator
+from .dependency_inference import InferDbtComponentDependenciesRequest, InferDbtProjectDependenciesRequest
+from .dependency_inference import rules as dependency_inference_rules
+from .target_types import DbtModel, DbtProjectTargetGenerator
+from .target_types.rules import ConstructTargetsInPathRequest, GenerateDbtTargetsRequest
+from .target_types.rules import rules as target_rules
 
 
 def get_file_bytes(path: str) -> bytes:
@@ -45,6 +50,7 @@ def sample_project_rule_runner(sample_project_files: FrozenDict[str, bytes], req
 			PythonRequirementTarget,
 			FileTarget,
 			PythonRequirementsTargetGenerator,
+			DbtModel,
 		],
 		rules=(
 			QueryRule(GlobalOptions, []),
@@ -56,6 +62,12 @@ def sample_project_rule_runner(sample_project_files: FrozenDict[str, bytes], req
 			QueryRule(DbtEnvVars, [HydrateDbtEnvVarsRequest]),
 			# QueryRule(Process, [DbtCliCommandRequest, MkdirBinary, CpBinary, ChmodBinary]),
 			QueryRule(HydratedDbtProject, [DbtProjectTargetGenerator, EnvironmentName]),
+			*target_rules(),
+			QueryRule(GeneratedTargets, [GenerateDbtTargetsRequest]),
+			QueryRule(Targets, [ConstructTargetsInPathRequest]),
+			*dependency_inference_rules(),
+			QueryRule(InferredDependencies, [EnvironmentName, InferDbtProjectDependenciesRequest]),
+			QueryRule(InferredDependencies, [EnvironmentName, InferDbtComponentDependenciesRequest]),
 			*pex_rules(),
 			QueryRule(PexPEX, ()),
 			QueryRule(Pex, (PexRequest,)),

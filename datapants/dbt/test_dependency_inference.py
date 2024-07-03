@@ -54,23 +54,29 @@ def test_infer_dbt_project_dependencies() -> None:
 
 @parametrize_python_versions
 @pytest.mark.parametrize(
-	argnames=("request_address", "inferred_deps"),
-	argvalues=[],
-	ids=(),
+	argnames=("request_target_name", "inferred_deps"),
+	argvalues=[
+		(
+			"models/marts/customers.sql",
+			{"models/marts/customers.yml", "models/marts/orders.sql", "models/staging/stg_customers.sql"},
+		),
+		("models/marts/order_items.yml", {"models/marts/order_items.sql", "models/marts/orders.yml"}),
+		("models/staging/stg_customers.yml", set()),
+		# TODO: add macro, doc, and data-test test cases
+	],
+	ids=("Model", "Config with Cycle", "Config without Cycle"),
 )
 def test_infer_dbt_component_dependencies(
-	sample_project_rule_runner: PythonRuleRunner, request_address: Address, inferred_deps: InferredDependencies
+	sample_project_rule_runner: PythonRuleRunner, request_target_name: str, inferred_deps: set[str]
 ) -> None:
-	assert (
-		sample_project_rule_runner.request(
-			InferredDependencies,
-			[
-				InferDbtComponentDependenciesRequest(
-					InferDbtComponentDependenciesRequest.infer_from.create(
-						sample_project_rule_runner.get_target(request_address)
-					)
+	root_address = Address("sample-project", target_name="root")
+	assert sample_project_rule_runner.request(
+		InferredDependencies,
+		[
+			InferDbtComponentDependenciesRequest(
+				InferDbtComponentDependenciesRequest.infer_from.create(
+					sample_project_rule_runner.get_target(root_address.create_generated(request_target_name))
 				)
-			],
-		)
-		== inferred_deps
-	)
+			)
+		],
+	) == InferredDependencies(root_address.create_generated(dep) for dep in inferred_deps)

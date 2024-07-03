@@ -39,10 +39,10 @@ from .common_rules import (
 	map_addresses_to_unique_ids,
 )
 from .common_rules import rules as common_rules
+from .conftest import parametrize_python_versions
 from .target_types import DbtModel, DbtProjectTargetGenerator, DbtThirdPartyPackage
 from .target_types.project import RequiredEnvVarsField
 from .target_types.third_party_package import DbtThirdPartyPackageSpec
-from .conftest import parametrize_python_versions
 
 
 @pytest.mark.parametrize(

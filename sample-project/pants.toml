@@ -1,5 +1,5 @@
 [GLOBAL]
-pants_version = "2.21.0"
+pants_version = "2.23.0.dev2"
 pythonpath = ["%(buildroot)s/../"]
 backend_packages = [
     "pants.backend.python",
