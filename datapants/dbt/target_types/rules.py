@@ -116,7 +116,7 @@ async def generate_dbt_targets(request: GenerateDbtTargetsRequest) -> GeneratedT
 	"""Generate all of the dbt targets from the dbt project root."""
 	core_project_source_fields: list[SingleSourceField] = [
 		request.generator[ProjectFileField],
-		request.generator[PackagesFileField],
+		request.generator[PackagesFileField], 
 		request.generator[ProfilesFileField],
 	]
 	dbt_project_spec, core_project_files = await MultiGet(

@@ -10,4 +10,6 @@ python_sources(
 python_tests(
     name="tests",
     sources=test_sources,
+    dependencies=[f"{build_file_dir().parent}:sample-project-relocated", "//:additional_reqs#pytest-raises"],
+    timeout=30,
 )
