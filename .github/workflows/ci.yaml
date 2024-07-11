@@ -1,6 +1,8 @@
 name: Pull Request CI
 on:
   pull_request:
+    branches:
+      - main
   push:
     branches:
       - main
@@ -11,6 +13,7 @@ jobs:
     outputs:
       ci_lockfiles: ${{ steps.get-ci-lockfiles.outputs.CI_LOCKFILES }}
     steps:
+      - uses: actions/checkout@v4
       - name: Get Pants Versions
         id: get-ci-lockfiles
         run: |
@@ -28,11 +31,9 @@ jobs:
         # os:
         #   - ubuntu-latest
         #   - macos-latest
-        #   - ARM64
-        #   - 
     env:
       PANTS_VERSION: ${{ matrix.pants_version_lockfile.version }}
-      PANTS_PYTHON_RESOLVES: '{"pants-plugins": "ci-lockfiles/'${{ matrix.pants_version_lockfile.lockfile }}'"}'
+      PANTS_PYTHON_RESOLVES: "{\"pants-plugins\": \"ci-lockfiles/${{ matrix.pants_version_lockfile.lockfile }}\"}"
     steps:
       - uses: actions/checkout@v4
       - name: Initialize Pants
