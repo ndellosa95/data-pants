@@ -1,0 +1,53 @@
+[GLOBAL]
+pants_version = "2.23.0dev2"
+backend_packages = [
+    "pants.backend.python",
+    "pants.backend.python.typecheck.mypy",
+    "pants.backend.experimental.python.lint.ruff.check",
+    "pants.backend.python.lint.isort",
+    "pants.backend.experimental.python.lint.ruff.format",
+    "pants.backend.plugin_development",
+    # Comment out below until new version release
+    # "pants.backend.experimental.sql"
+]
+pants_ignore.add = ["sample-project"]
+
+[test]
+use_coverage = true
+
+[python]
+enable_resolves = true
+default_resolve = "pants-plugins"
+interpreter_constraints = ["==3.9.*"]
+
+[python.resolves]
+pants-plugins = "pants-plugins.lock"
+tools = "tools.lock"
+
+[python.resolves_to_interpreter_constraints]
+# Pants runs with Python 3.9, so this lets us
+# use different interpreter constraints when
+# generating the lockfile than the rest of our project.
+#
+# Warning: it's still necessary to set the `interpreter_constraints`
+# field on each `python_sources` and `python_tests` target in
+# our plugin! This only impacts how the lockfile is generated.
+pants-plugins = ["==3.9.*"]
+
+[pytest]
+install_from_resolve = "pants-plugins"
+args = ["--no-header", "-vv"]
+requirements = ["pytest", "pytest-cov"]
+
+[coverage-py]
+interpreter_constraints = ["==3.9.*"]
+report = ["console", "html"]
+
+[ruff]
+install_from_resolve = "tools"
+
+[isort]
+install_from_resolve = "tools"
+
+[mypy]
+install_from_resolve = "tools"

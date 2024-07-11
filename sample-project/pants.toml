@@ -1,0 +1,18 @@
+[GLOBAL]
+pants_version = "2.23.0.dev2"
+pythonpath = ["%(buildroot)s/../"]  # This is only needed here and can be removed in an actual project
+backend_packages = [
+    "pants.backend.python",
+    "datapants.dbt"
+]
+
+[python]
+enable_resolves = true
+default_resolve = "sample-dbt-project"
+interpreter_constraints = ["==3.11.*"]
+
+[python.resolves]
+sample-dbt-project = "lock.txt"
+
+[python.resolves_to_interpreter_constraints]
+sample-dbt-project = ["==3.11.*"]

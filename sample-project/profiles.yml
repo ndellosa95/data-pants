@@ -1,0 +1,7 @@
+datapants:
+  target: default
+  outputs:
+    default:
+      type: duckdb
+      path: 'datapants.duckdb'
+      

@@ -1,0 +1,19 @@
+[tool.ruff]
+exclude = [
+    ".git",
+    ".pants.d",
+    ".vscode",
+    "dist"
+]
+line-length = 120
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "tab"
+docstring-code-format = true
+
+[tool.isort]
+profile = "black"
+line_length = 120
+color_output = true
+indent = "tab"
