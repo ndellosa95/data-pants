@@ -1,0 +1,51 @@
+name: Pull Request CI
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+jobs:
+  get_ci_lockfiles:
+    runs-on: ubuntu-latest
+    outputs:
+      ci_lockfiles: ${{ steps.get-ci-lockfiles.outputs.CI_LOCKFILES }}
+    steps:
+      - name: Get Pants Versions
+        id: get-ci-lockfiles
+        run: |
+          echo "CI_LOCKFILES<<EOF" >> $GITHUB_OUTPUT
+          ls ci-lockfiles | 
+            jq -R --slurp 'rtrimstr("\n") | split("\n") | map({"lockfile": (.), "version": (. | ltrimstr("release_") | rtrimstr(".lock"))})' | 
+            tee -a $GITHUB_OUTPUT
+          echo 'EOF' >> $GITHUB_OUTPUT
+  run_ci:
+    runs-on: ubuntu-latest
+    needs: [get_ci_lockfiles]
+    strategy:
+      matrix:
+        pants_version_lockfile: ${{ fromJson(needs.get_ci_lockfiles.outputs.ci_lockfiles) }}
+        # os:
+        #   - ubuntu-latest
+        #   - macos-latest
+        #   - ARM64
+        #   - 
+    env:
+      PANTS_VERSION: ${{ matrix.pants_version_lockfile.version }}
+      PANTS_PYTHON_RESOLVES: '{"pants-plugins": "ci-lockfiles/'${{ matrix.pants_version_lockfile.lockfile }}'"}'
+    steps:
+      - uses: actions/checkout@v4
+      - name: Initialize Pants
+        uses: pantsbuild/actions/init-pants@main
+        with:
+          gha-cache-key: cache0-pants${{ matrix.pants_version_lockfile.lockfile }}
+          named-caches-hash: ${{ hashFiles(matrix.pants_version_lockfile.lockfile) }}
+      - name: Lint
+        run: |
+          pants tailor --check update-build-files --check lint ::
+      - name: Typecheck
+        run: |
+          pants check ::
+      - name: Test
+        run: |
+          pants test ::
