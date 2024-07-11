@@ -11,7 +11,7 @@ backend_packages = [
     # Comment out below until new version release
     # "pants.backend.experimental.sql"
 ]
-build_ignore = ["sample-project"]
+ignore.add = ["sample-project"]
 
 [test]
 use_coverage = true

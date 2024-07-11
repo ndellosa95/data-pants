@@ -50,9 +50,6 @@ jobs:
             3.9
             3.10
             3.11
-      - name: temp
-        run: |
-          pants help-advanced global
       - name: Lint
         run: |
           pants tailor --check update-build-files --check lint ::
