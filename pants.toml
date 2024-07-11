@@ -5,7 +5,6 @@ backend_packages = [
     "pants.backend.python.typecheck.mypy",
     "pants.backend.experimental.python.lint.ruff.check",
     "pants.backend.python.lint.isort",
-    "pants.backend.python.lint.docformatter",
     "pants.backend.experimental.python.lint.ruff.format",
     "pants.backend.plugin_development",
     # Comment out below until new version release
@@ -22,7 +21,8 @@ default_resolve = "pants-plugins"
 interpreter_constraints = ["==3.9.*"]
 
 [python.resolves]
-pants-plugins = "lock.txt"
+pants-plugins = "pants-plugins.lock"
+tools = "tools.lock"
 
 [python.resolves_to_interpreter_constraints]
 # Pants runs with Python 3.9, so this lets us
@@ -42,3 +42,12 @@ requirements = ["pytest", "pytest-cov"]
 [coverage-py]
 interpreter_constraints = ["==3.9.*"]
 report = ["console", "html"]
+
+[ruff]
+install_from_resolve = "tools"
+
+[isort]
+install_from_resolve = "tools"
+
+[mypy]
+install_from_resolve = "tools"

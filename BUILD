@@ -5,6 +5,12 @@ python_requirements(
     source="additional_requirements.txt",
 )
 
+python_requirements(
+    name="tool_reqs",
+    source="tool_requirements.txt",
+    resolve="tools",
+)
+
 __defaults__(
     {
         (python_test, python_tests, python_test_utils): {
