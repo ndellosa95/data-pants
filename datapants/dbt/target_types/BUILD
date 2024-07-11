@@ -4,12 +4,18 @@ test_sources = [
 ]
 
 python_sources(
-    sources=["*.py", *(f"!{src}" for src in test_sources)]  # required so it picks up `test.py`
+    sources=[
+        "*.py",
+        *(f"!{src}" for src in test_sources),
+    ]  # required so it picks up `test.py`
 )
 
 python_tests(
     name="tests",
     sources=test_sources,
-    dependencies=[f"{build_file_dir().parent}:sample-project-relocated", "//:additional_reqs#pytest-raises"],
+    dependencies=[
+        f"{build_file_dir().parent}:sample-project-relocated",
+        "//:additional_reqs#pytest-raises",
+    ],
     timeout=30,
 )
