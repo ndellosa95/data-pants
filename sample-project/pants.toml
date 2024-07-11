@@ -1,6 +1,6 @@
 [GLOBAL]
 pants_version = "2.23.0.dev2"
-pythonpath = ["%(buildroot)s/../"]
+pythonpath = ["%(buildroot)s/../"]  # This is only needed here and can be removed in an actual project
 backend_packages = [
     "pants.backend.python",
     "datapants.dbt"

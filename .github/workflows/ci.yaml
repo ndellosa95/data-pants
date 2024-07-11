@@ -9,11 +9,13 @@ on:
 
 jobs:
   get_ci_lockfiles:
+    name: Get Pants CI Versions
     runs-on: ubuntu-latest
     outputs:
       ci_lockfiles: ${{ steps.get-ci-lockfiles.outputs.CI_LOCKFILES }}
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout Repo
+        uses: actions/checkout@v4
       - name: Get Pants Versions
         id: get-ci-lockfiles
         run: |
@@ -23,6 +25,7 @@ jobs:
             tee -a $GITHUB_OUTPUT
           echo 'EOF' >> $GITHUB_OUTPUT
   run_ci:
+    name: "Continuous Integration"
     runs-on: ubuntu-latest
     needs: [get_ci_lockfiles]
     strategy:
@@ -35,12 +38,21 @@ jobs:
       PANTS_VERSION: ${{ matrix.pants_version_lockfile.version }}
       PANTS_PYTHON_RESOLVES: "{\"pants-plugins\": \"ci-lockfiles/${{ matrix.pants_version_lockfile.lockfile }}\"}"
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout Repo
+        uses: actions/checkout@v4
       - name: Initialize Pants
         uses: pantsbuild/actions/init-pants@main
         with:
           gha-cache-key: cache0-pants${{ matrix.pants_version_lockfile.lockfile }}
           named-caches-hash: ${{ hashFiles(matrix.pants_version_lockfile.lockfile) }}
+          setup-python-for-plugins: |
+            3.8
+            3.9
+            3.10
+            3.11
+      - name: temp
+        run: |
+          pants help-advanced global
       - name: Lint
         run: |
           pants tailor --check update-build-files --check lint ::
