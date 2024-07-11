@@ -40,16 +40,19 @@ jobs:
     steps:
       - name: Checkout Repo
         uses: actions/checkout@v4
+      - name: Setup Python(s)
+        uses: actions/setup-python@v5
+        with:
+          python-version: |
+              3.8
+              3.9
+              3.10
+              3.11
       - name: Initialize Pants
         uses: pantsbuild/actions/init-pants@main
         with:
           gha-cache-key: cache0-pants${{ matrix.pants_version_lockfile.lockfile }}
           named-caches-hash: ${{ hashFiles(matrix.pants_version_lockfile.lockfile) }}
-          setup-python-for-plugins: |
-            3.8
-            3.9
-            3.10
-            3.11
       - name: Lint
         run: |
           pants tailor --check update-build-files --check lint ::
