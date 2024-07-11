@@ -58,7 +58,7 @@ SPEC_KEY_TARGET_MAPPING: dict[type[Target], str] = {
 class ConstructTargetsInPathRequest:
 	target_generator: DbtProjectTargetGenerator
 	dirpaths: tuple[str, ...]
-	target_types: tuple[type[Target]]
+	target_types: tuple[type[Target], ...]
 
 
 def _validate_overrides(overrides: OverridesField, filename: str) -> Dict[str, Any]:

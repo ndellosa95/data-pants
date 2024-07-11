@@ -1,5 +1,6 @@
 import os
 from dataclasses import dataclass
+from typing import cast
 
 from pants.core.target_types import ResourceSourceField
 from pants.engine.addresses import Addresses
@@ -59,7 +60,7 @@ async def generate_model_sources(request: GenerateSqlSourcesFromDbtModelRequest)
 	dbt_project_targets = await Get(
 		UnexpandedTargets, Addresses([request.protocol_target.address.maybe_convert_to_target_generator()])
 	)
-	dbt_project_target: DbtProjectTargetGenerator = dbt_project_targets.expect_single()
+	dbt_project_target = cast(DbtProjectTargetGenerator, dbt_project_targets.expect_single())
 	wrapped_compile_digest, project_spec = await MultiGet(
 		Get(WrappedCompiledDbtProjectDigest, DbtProjectTargetGenerator, dbt_project_target),
 		Get(DbtProjectSpec, DbtProjectTargetGenerator, dbt_project_target),

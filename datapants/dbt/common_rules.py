@@ -8,10 +8,10 @@ from collections import defaultdict
 from contextlib import suppress
 from dataclasses import dataclass, field, replace
 from textwrap import dedent
-from typing import Any, Iterable, Iterator
+from typing import Any, Iterator
 
 import yaml
-from packaging.specifiers import Specifier, SpecifierSet
+from packaging.specifiers import SpecifierSet, _IndividualSpecifier
 from packaging.version import Version
 from pants.backend.python.subsystems.setup import PythonSetup
 from pants.backend.python.target_types import ConsoleScript, PythonResolveField
@@ -114,20 +114,31 @@ class SpecifierRange:
 		return ",".join(parts)
 
 	@staticmethod
-	def _convert_spec_version(spec: Specifier) -> Version:
+	def _convert_spec_version(spec: _IndividualSpecifier) -> Version:
 		return Version(spec.version.replace("*", "0"))
 
-	def test_mins(self, specs: Iterable[Specifier]) -> bool:
+	def test_mins(self, specs: SpecifierSet) -> bool:
+		if not self.min_version:
+			return True
+		min_specs = [spec for spec in specs if spec.operator in {"==", ">", ">=", "~="}]
+		if not min_specs:
+			return False
 		base_version = Version(self.min_version)
 		return all(
 			(base_version.__le__ if self.min_inclusive or spec.operator == ">" else base_version.__lt__)(
 				self._convert_spec_version(spec)
 			)
-			for spec in specs
+			for spec in min_specs
 		)
 
-	def test_maxs(self, specs: Iterable[Specifier]) -> bool:
-		def _fix_compatible(s: Specifier) -> Version:
+	def test_maxs(self, specs: SpecifierSet) -> bool:
+		if not self.max_version:
+			return True
+		max_specs = [spec for spec in specs if spec.operator in {"==", "<", "<=", "~="}]
+		if not max_specs:
+			return False
+
+		def _fix_compatible(s: _IndividualSpecifier) -> Version:
 			v = self._convert_spec_version(s)
 			return Version(".".join(map(str, [*v.release[:-2], v.release[-2] + 1]))) if s.operator == "~=" else v
 
@@ -136,25 +147,13 @@ class SpecifierRange:
 			(base_version.__ge__ if self.max_inclusive or spec.operator == "<" else base_version.__gt__)(
 				_fix_compatible(spec)
 			)
-			for spec in specs
+			for spec in max_specs
 		)
 
 	def is_subset(self, specs: SpecifierSet) -> bool:
 		"""Tests whether the SpecifierSet `specs` is a subset of this specifier
 		range."""
-		return (
-			self.min_version is None
-			or (
-				bool(min_specs := [spec for spec in specs if spec.operator in {"==", ">", ">=", "~="}])
-				and self.test_mins(min_specs)
-			)
-		) and (
-			self.max_version is None
-			or (
-				bool(max_specs := [spec for spec in specs if spec.operator in {"==", "<", "<=", "~="}])
-				and self.test_maxs(max_specs)
-			)
-		)
+		return self.test_mins(specs) and self.test_maxs(specs)
 
 
 MIN_DEPENDENCIES_YML_VERSION = SpecifierRange(min_version="1.6", min_inclusive=True)
@@ -167,7 +166,8 @@ async def load_project_spec_for_target_generator(target_generator: DbtProjectTar
 	dbt_project_yml_sources = await Get(HydratedSources, HydrateSourcesRequest(target_generator[ProjectFileField]))
 	if not dbt_project_yml_sources.snapshot.files:
 		raise InvalidDbtProject(
-			f"No `dbt_project.yml` found for `{target_generator.alias}` target at address {target_generator.address}"
+			f"No `dbt_project.yml` found for `{target_generator.alias}` target at address {target_generator.address}",
+			project_name=None,
 		)
 	dbt_project_yml_contents = await Get(DigestContents, Digest, dbt_project_yml_sources.snapshot.digest)
 	loaded_contents = _safe_load_frozendict(dbt_project_yml_contents[0].content)

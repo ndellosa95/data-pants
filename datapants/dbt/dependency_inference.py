@@ -1,6 +1,6 @@
 import logging
 from dataclasses import dataclass
-from typing import ClassVar, Type
+from typing import ClassVar, Type, cast
 
 from pants.backend.python.subsystems.setup import PythonSetup
 from pants.backend.python.target_types import PythonRequirementResolveField, PythonRequirementsField, PythonResolveField
@@ -83,7 +83,7 @@ async def infer_dbt_component_dependencies(request: InferDbtComponentDependencie
 	dbt_project_targets = await Get(
 		UnexpandedTargets, Addresses([request.field_set.address.maybe_convert_to_target_generator()])
 	)
-	dbt_project_target: DbtProjectTargetGenerator = dbt_project_targets.expect_single()
+	dbt_project_target = cast(DbtProjectTargetGenerator, dbt_project_targets.expect_single())
 	dbt_manifest = await Get(DbtManifest, DbtProjectTargetGenerator, dbt_project_target)
 	address_to_unique_id_mapping = await Get(AddressToDbtUniqueIdMapping, DbtManifest, dbt_manifest)
 	if request.field_set.address not in address_to_unique_id_mapping:

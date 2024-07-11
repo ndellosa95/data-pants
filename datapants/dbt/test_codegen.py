@@ -67,7 +67,7 @@ def test_generate_model_sources(rule_runner: RuleRunner) -> None:
 		rule_args=[GenerateSqlSourcesFromDbtModelRequest(Mock(spec=Snapshot), model_target)],
 		mock_gets=[
 			rule_runner.do_not_use_mock(UnexpandedTargets, [Addresses]),
-			MockGet(WrappedCompiledDbtProjectDigest, [DbtProjectTargetGenerator], fake_compiled_project),
+			MockGet(WrappedCompiledDbtProjectDigest, (DbtProjectTargetGenerator,), fake_compiled_project),
 			rule_runner.do_not_use_mock(DbtProjectSpec, [DbtProjectTargetGenerator]),
 			rule_runner.do_not_use_mock(Digest, [DigestSubset]),
 			rule_runner.do_not_use_mock(Snapshot, [Digest]),

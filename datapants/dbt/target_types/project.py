@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import collections.abc
 import os
-from typing import Any
+from typing import Any, ClassVar
 
 from pants.backend.python.target_types import PythonResolveField
 from pants.core.util_rules.environments import EnvironmentField
@@ -13,8 +13,8 @@ from pants.engine.target import (
 	Dependencies,
 	InvalidFieldException,
 	InvalidFieldTypeException,
+	OptionalSingleSourceField,
 	OverridesField,
-	SingleSourceField,
 	StringField,
 	StringSequenceField,
 	TargetGenerator,
@@ -23,8 +23,9 @@ from pants.util.frozendict import FrozenDict
 from pants.util.strutil import softwrap
 
 
-class HardcodedSingleSourceField(SingleSourceField):
-	required = False
+class HardcodedSingleSourceField(OptionalSingleSourceField):
+	default: ClassVar[str]
+	value: str
 
 	@classmethod
 	def compute_value(cls, raw_value: str | None, address: Address) -> str:
@@ -38,6 +39,10 @@ class HardcodedSingleSourceField(SingleSourceField):
 			)
 			raise InvalidFieldException(f"Field `{cls.alias}` at address {address} must equal {equal_str}")
 		return result
+
+	@property
+	def file_path(self) -> str:
+		return os.path.join(self.address.spec_path, self.value)
 
 
 class ProjectFileField(HardcodedSingleSourceField):
@@ -68,6 +73,7 @@ class RequiredAdaptersField(StringSequenceField):
 	alias = "required_adapters"
 	help = "All possible adapters required by this dbt project."
 	required = True
+	value: tuple[str, ...]
 
 
 class RequiredEnvVarsField(AsyncFieldMixin):
@@ -79,6 +85,7 @@ class RequiredEnvVarsField(AsyncFieldMixin):
 		`ENV_VAR_NAME=ENV_VAR_VALUE`, or a path to a file to source environment variables from."""
 	)
 	required = False
+	value: str | FrozenDict[str, str]
 
 	@staticmethod
 	def parse_string(s: str) -> tuple[str, str]:

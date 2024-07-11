@@ -11,6 +11,7 @@ class DbtThirdPartyPackageSpec(Field):
 	alias = "specification"
 	help = "The specification that makes up the entry for this third-party package."
 	required = True
+	value: FrozenDict[str, Any]
 
 	@classmethod
 	def compute_value(cls, raw_value: Any, address: Address) -> FrozenDict[str, Any]:

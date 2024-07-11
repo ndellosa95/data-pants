@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from contextlib import contextmanager
-from typing import Any
+from typing import Any, cast
 from unittest.mock import ANY, Mock
 
 import pytest
@@ -95,7 +95,7 @@ def test_specifier_range_is_subset(
 ) -> None:
 	spec_range = SpecifierRange(min_version, min_inclusive, max_version, max_inclusive)
 	expected = meets_min_req and meets_max_req
-	spec_set = SpecifierSet(",".join(filter(bool, [min_req, max_req])))
+	spec_set = SpecifierSet(",".join(req for req in [min_req, max_req] if req))
 	assert spec_range.is_subset(spec_set) == expected
 
 
@@ -214,7 +214,7 @@ def test_compose_dbt_cli(rule_runner: RuleRunner) -> None:
 	rule_runner.write_files(project_files)
 	mock_pex = Mock(spec=VenvPex)
 	mock_get_venv_pex = Mock(return_value=mock_pex)
-	expected_target = rule_runner.get_target(Address("a"))
+	expected_target = cast(DbtProjectTargetGenerator, rule_runner.get_target(Address("a")))
 	result = run_rule_with_mocks(
 		compose_dbt_cli,
 		rule_args=[
@@ -258,7 +258,7 @@ def test_get_dbt_cli_command_process(rule_runner: RuleRunner) -> None:
 	request_digest = rule_runner.make_snapshot({"testfile": "test contents"}).digest
 	cli = DbtCli(
 		mock_pex,
-		rule_runner.get_target(Address("a")),
+		cast(DbtProjectTargetGenerator, rule_runner.get_target(Address("a"))),
 		"test_get_dbt_cli_command_process",
 		"get_dbt_cli_command_process_test",
 		"target",
@@ -273,6 +273,7 @@ def test_get_dbt_cli_command_process(rule_runner: RuleRunner) -> None:
 
 	def fake_get_process(venv_pex_process: VenvPexProcess) -> Process:
 		assert venv_pex_process.venv_pex is mock_pex
+		assert venv_pex_process.input_digest
 		return Process(
 			venv_pex_process.argv,
 			description=venv_pex_process.description,
